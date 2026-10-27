@@ -74,34 +74,34 @@ export default function CreateInvoicePage() {
   const [lineItems, setLineItems] = useState<LineItemForm[]>([
     {
       slNo: 1,
-      description: 'RH Front headlight',
+      description: '',
       hsnSac: '998714',
       quantity: 1,
       unit: 'Nos',
-      rate: 8200,
+      rate: 0,
       discountType: 'fixed',
       discountValue: 0,
       gstRate: 18,
-      taxableAmount: 8200,
-      totalGstAmount: 1476,
-      totalAmount: 9676
+      taxableAmount: 0,
+      totalGstAmount: 0,
+      totalAmount: 0
     }
   ]);
 
   // Totals
   const [totals, setTotals] = useState<any>({
-    subtotalTaxable: 8200,
-    totalCgst: 738,
-    totalSgst: 738,
+    subtotalTaxable: 0,
+    totalCgst: 0,
+    totalSgst: 0,
     totalIgst: 0,
-    totalGst: 1476,
-    totalAmount: 9676,
-    amountInWords: 'RUPEES NINE THOUSAND SIX HUNDRED AND SEVENTY SIX ONLY',
+    totalGst: 0,
+    totalAmount: 0,
+    amountInWords: '',
     taxBreakdown: []
   });
 
   const [notes, setNotes] = useState('');
-  const [paymentTerms, setPaymentTerms] = useState('Immediate upon invoice submission');
+  const [paymentTerms, setPaymentTerms] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

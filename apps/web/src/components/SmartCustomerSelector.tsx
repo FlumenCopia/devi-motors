@@ -46,7 +46,7 @@ export function SmartCustomerSelector({
     customerType: 'individual' as 'individual' | 'company',
     vehicleNumber: '',
     purchaseOrder: '',
-    billingAddress: 'Thiruvananthapuram, Kerala',
+    billingAddress: '',
     gstin: ''
   });
 

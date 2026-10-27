@@ -53,24 +53,18 @@ export default function CreateQuotationPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
 
   // Proposal-style fields
-  const [vehicleProjectName, setVehicleProjectName] = useState('Lamborghini Urus Mirror Polishing');
-  const [serviceTitle, setServiceTitle] = useState('Premium Mirror Polishing for Lamborghini Urus');
-  const [narrativeDescription, setNarrativeDescription] = useState(
-    'We are pleased to offer our professional mirror polishing service to restore the vehicle’s surface with a deep, glossy, mirror-like finish while maintaining the premium appearance of the Lamborghini Urus.'
-  );
-  const [serviceCharge, setServiceCharge] = useState<number>(25000); // BEFORE GST
+  const [vehicleProjectName, setVehicleProjectName] = useState('');
+  const [serviceTitle, setServiceTitle] = useState('');
+  const [narrativeDescription, setNarrativeDescription] = useState('');
+  const [serviceCharge, setServiceCharge] = useState<number>(0); // BEFORE GST
   const [proposalHsn, setProposalHsn] = useState('998714');
   const [proposalCustomHsn, setProposalCustomHsn] = useState('');
   const [isProposalCustomHsn, setIsProposalCustomHsn] = useState(false);
   const [proposalGstRate, setProposalGstRate] = useState<number>(18);
   const [isProposalCustomGst, setIsProposalCustomGst] = useState(false);
   const [proposalCustomGstValue, setProposalCustomGstValue] = useState('18');
-  const [warranty, setWarranty] = useState(
-    'We provide a 2-year warranty on the mirror polishing finish, subject to proper maintenance and care.'
-  );
-  const [closingNote, setClosingNote] = useState(
-    'Thank you for choosing us, we look forward to giving your Lamborghini Urus a flawless finish.'
-  );
+  const [warranty, setWarranty] = useState('');
+  const [closingNote, setClosingNote] = useState('');
 
   // Shared metadata
   const [quotationDate, setQuotationDate] = useState(new Date().toISOString().split('T')[0]);
@@ -88,27 +82,27 @@ export default function CreateQuotationPage() {
   const [lineItems, setLineItems] = useState<LineItemForm[]>([
     {
       slNo: 1,
-      description: 'Fleet Detailing and Paint Protection',
+      description: '',
       hsnSac: '998714',
       quantity: 1,
       unit: 'Nos',
-      rate: 10000,
+      rate: 0,
       discountType: 'fixed',
       discountValue: 0,
       gstRate: 18,
-      taxableAmount: 10000,
-      totalGstAmount: 1800,
-      totalAmount: 11800
+      taxableAmount: 0,
+      totalGstAmount: 0,
+      totalAmount: 0
     }
   ]);
 
   const [totals, setTotals] = useState<any>({
-    subtotalTaxable: 10000,
-    totalCgst: 900,
-    totalSgst: 900,
+    subtotalTaxable: 0,
+    totalCgst: 0,
+    totalSgst: 0,
     totalIgst: 0,
-    totalGst: 1800,
-    totalAmount: 11800,
+    totalGst: 0,
+    totalAmount: 0,
     amountInWords: '',
     taxBreakdown: []
   });
