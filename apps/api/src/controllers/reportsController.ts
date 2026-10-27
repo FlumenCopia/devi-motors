@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { InvoiceModel } from '../models/Invoice';
 import { QuotationModel } from '../models/Quotation';
 import { PaymentModel } from '../models/Payment';
-import { getFinancialYear } from '@devi-motors/shared';
+import { getFinancialYear } from '../shared';
 
 export async function getFinancialReports(req: Request, res: Response): Promise<void> {
   try {

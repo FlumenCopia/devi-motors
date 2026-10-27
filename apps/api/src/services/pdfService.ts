@@ -4,7 +4,7 @@ import puppeteer from 'puppeteer';
 import { IInvoice } from '../models/Invoice';
 import { IQuotation } from '../models/Quotation';
 import { ICompanySettings } from '../models/CompanySettings';
-import { formatDateDDMMYYYY, getTaxBreakdownByRate } from '@devi-motors/shared';
+import { formatDateDDMMYYYY, getTaxBreakdownByRate, TaxSlabBreakdown } from '../shared';
 
 // Helper to get base64 data URI for local image
 function getBase64Image(filePath: string): string {
@@ -508,7 +508,7 @@ export function generateInvoiceHtml(
         : `
       ${taxSlabs
         .map(
-          slab => `
+          (slab: any) => `
         <tr>
           <td style="height:22px;">${slab.taxableAmount.toLocaleString('en-IN')}</td>
           ${

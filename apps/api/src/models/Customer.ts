@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { CustomerType } from '@devi-motors/shared';
+import { CustomerType } from '../shared';
 
 export interface ICustomer extends Document {
   name: string;

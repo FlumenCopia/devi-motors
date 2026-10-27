@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useTheme } from '../../context/ThemeContext';
-import { AUTOMOTIVE_HSN_CODES } from '@devi-motors/shared';
+import { AUTOMOTIVE_HSN_CODES } from '@/shared';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();

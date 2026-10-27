@@ -4,7 +4,7 @@ import {
   QuotationStatus,
   LineItem,
   InvoiceCustomerSnapshot
-} from '@devi-motors/shared';
+} from '../shared';
 
 export interface IQuotation extends Document {
   quotationType: QuotationType;

@@ -3,7 +3,7 @@ import { InvoiceModel } from '../models/Invoice';
 import { QuotationModel } from '../models/Quotation';
 import { CustomerModel } from '../models/Customer';
 import { PaymentModel } from '../models/Payment';
-import { getFinancialYear } from '@devi-motors/shared';
+import { getFinancialYear } from '../shared';
 
 export async function getDashboardMetrics(req: Request, res: Response): Promise<void> {
   try {

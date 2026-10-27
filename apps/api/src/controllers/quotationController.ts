@@ -11,7 +11,7 @@ import {
   calculateDocumentTotals,
   numberToIndianWords,
   getFinancialYear
-} from '@devi-motors/shared';
+} from '../shared';
 
 export async function listQuotations(req: Request, res: Response): Promise<void> {
   try {

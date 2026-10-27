@@ -1,6 +1,6 @@
 import { CounterModel } from '../models/Counter';
 import { CompanySettingsModel } from '../models/CompanySettings';
-import { getFinancialYear } from '@devi-motors/shared';
+import { getFinancialYear } from '../shared';
 
 export async function getNextDocumentNumber(
   type: 'invoice' | 'quotation',

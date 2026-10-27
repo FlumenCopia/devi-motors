@@ -1,9 +1,4 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  transpilePackages: ['@devi-motors/shared'],
-  experimental: {
-    externalDir: true,
-  },
-};
+const nextConfig = {};
 
 module.exports = nextConfig;

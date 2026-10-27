@@ -11,7 +11,7 @@ import {
   calculateDocumentTotals,
   validateOrderInvoiceDates,
   getFinancialYear
-} from '@devi-motors/shared';
+} from '../shared';
 
 export async function listInvoices(req: Request, res: Response): Promise<void> {
   try {

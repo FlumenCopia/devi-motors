@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { BankDetails } from '@devi-motors/shared';
+import { BankDetails } from '../shared';
 
 export interface ICompanySettings extends Document {
   companyName: string;

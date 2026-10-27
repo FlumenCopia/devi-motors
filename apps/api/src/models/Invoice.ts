@@ -6,7 +6,7 @@ import {
   LineItem,
   InvoiceCustomerSnapshot,
   BankDetails
-} from '@devi-motors/shared';
+} from '../shared';
 
 export interface IInvoice extends Document {
   invoiceType: InvoiceType;

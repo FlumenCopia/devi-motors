@@ -23,7 +23,7 @@ import {
   STANDARD_GST_RATES,
   calculateLineItem,
   calculateDocumentTotals
-} from '@devi-motors/shared';
+} from '@/shared';
 import { SmartCustomerSelector } from '../../../components/SmartCustomerSelector';
 
 interface LineItemForm {
