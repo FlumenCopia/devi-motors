@@ -284,17 +284,20 @@ export function SmartCustomerSelector({
                           </span>
                         </div>
                         <div className="flex items-center gap-3 text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex-wrap">
-                          <span className="font-medium text-gray-700 dark:text-gray-300">
-                            📱 {c.phone}
+                          <span className="font-medium text-gray-700 dark:text-gray-300 inline-flex items-center gap-1">
+                            <Phone className="w-3 h-3 text-gray-400" />
+                            {c.phone}
                           </span>
                           {c.vehicleNumbers?.[0] && (
-                            <span className="font-mono text-gray-500">
-                              🚗 {c.vehicleNumbers[0]}
+                            <span className="font-mono text-gray-500 inline-flex items-center gap-1">
+                              <Car className="w-3 h-3 text-gray-400" />
+                              {c.vehicleNumbers[0]}
                             </span>
                           )}
                           {c.purchaseOrders?.[0] && (
-                            <span className="font-mono text-gray-500">
-                              📄 {c.purchaseOrders[0]}
+                            <span className="font-mono text-gray-500 inline-flex items-center gap-1">
+                              <FileText className="w-3 h-3 text-gray-400" />
+                              {c.purchaseOrders[0]}
                             </span>
                           )}
                         </div>

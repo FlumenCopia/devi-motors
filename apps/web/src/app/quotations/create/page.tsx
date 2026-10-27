@@ -15,7 +15,8 @@ import {
   Tag,
   Percent,
   Sparkles,
-  HelpCircle
+  HelpCircle,
+  X
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import {
@@ -537,7 +538,7 @@ export default function CreateQuotationPage() {
                       : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-[#F52B2B]'
                   }`}
                 >
-                  🎨 SAC 998714 — Painting & Service
+                  SAC 998714 — Painting & Service
                 </button>
                 <button
                   type="button"
@@ -551,7 +552,7 @@ export default function CreateQuotationPage() {
                       : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-[#F52B2B]'
                   }`}
                 >
-                  🔧 HSN 8708 — Spare Parts & Accessories
+                  HSN 8708 — Spare Parts & Accessories
                 </button>
                 <button
                   type="button"
@@ -562,7 +563,7 @@ export default function CreateQuotationPage() {
                       : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-[#F52B2B]'
                   }`}
                 >
-                  ✏️ Custom Code
+                  Custom Code
                 </button>
               </div>
 
@@ -763,7 +764,7 @@ export default function CreateQuotationPage() {
                       : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-[#F52B2B]'
                   }`}
                 >
-                  🎨 SAC 998714 — Painting & Service
+                  SAC 998714 — Painting & Service
                 </button>
                 <button
                   type="button"
@@ -777,7 +778,7 @@ export default function CreateQuotationPage() {
                       : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-[#F52B2B]'
                   }`}
                 >
-                  🔧 HSN 8708 — Spare Parts & Goods
+                  HSN 8708 — Spare Parts & Goods
                 </button>
                 <button
                   type="button"
@@ -788,7 +789,7 @@ export default function CreateQuotationPage() {
                       : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-[#F52B2B]'
                   }`}
                 >
-                  ✏️ Custom Code
+                  Custom Code
                 </button>
               </div>
 
@@ -965,7 +966,7 @@ export default function CreateQuotationPage() {
                               className="text-[10px] text-gray-400 hover:text-gray-600 px-1"
                               title="Back to dropdown"
                             >
-                              ✕
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         ) : (
@@ -1068,7 +1069,7 @@ export default function CreateQuotationPage() {
                               className="text-[10px] text-gray-400 hover:text-gray-600 px-0.5"
                               title="Back to presets"
                             >
-                              ✕
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         ) : (
