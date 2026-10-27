@@ -1,4 +1,17 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+export function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '');
+  }
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host !== 'localhost' && host !== '127.0.0.1') {
+      return 'https://devi-motors.onrender.com/api';
+    }
+  }
+  return 'http://localhost:5000/api';
+}
+
+export const API_BASE = getApiBaseUrl();
 
 export function getAuthToken(): string | null {
   if (typeof window !== 'undefined') {
@@ -45,7 +58,7 @@ export async function apiRequest<T = any>(
     ...options.headers,
   };
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
+  const response = await fetch(`${getApiBaseUrl()}${endpoint}`, {
     ...options,
     headers,
   });
@@ -130,9 +143,9 @@ export const api = {
   issueInvoice: (id: string) =>
     apiRequest(`/invoices/${id}/issue`, { method: 'POST' }),
   previewInvoiceUrl: (id: string, withSignature = false) =>
-    `${API_BASE}/invoices/${id}/preview${withSignature ? '?withSignature=true' : ''}`,
+    `${getApiBaseUrl()}/invoices/${id}/preview${withSignature ? '?withSignature=true' : ''}`,
   downloadInvoiceUrl: (id: string, withSignature = false) =>
-    `${API_BASE}/invoices/${id}/pdf${withSignature ? '?withSignature=true' : ''}`,
+    `${getApiBaseUrl()}/invoices/${id}/pdf${withSignature ? '?withSignature=true' : ''}`,
 
   // Quotations
   listQuotations: (params?: any) => {
@@ -153,9 +166,9 @@ export const api = {
   convertQuotationToInvoice: (id: string) =>
     apiRequest(`/quotations/${id}/convert`, { method: 'POST' }),
   previewQuotationUrl: (id: string, withSignature = false) =>
-    `${API_BASE}/quotations/${id}/preview${withSignature ? '?withSignature=true' : ''}`,
+    `${getApiBaseUrl()}/quotations/${id}/preview${withSignature ? '?withSignature=true' : ''}`,
   downloadQuotationUrl: (id: string, withSignature = false) =>
-    `${API_BASE}/quotations/${id}/pdf${withSignature ? '?withSignature=true' : ''}`,
+    `${getApiBaseUrl()}/quotations/${id}/pdf${withSignature ? '?withSignature=true' : ''}`,
 
   // Payments
   recordPayment: (data: {

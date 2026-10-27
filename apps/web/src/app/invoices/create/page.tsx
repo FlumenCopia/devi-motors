@@ -19,7 +19,7 @@ import {
   Sparkles,
   HelpCircle
 } from 'lucide-react';
-import { api } from '../../../lib/api';
+import { api, getApiBaseUrl } from '../../../lib/api';
 import {
   validateOrderInvoiceDates,
   AUTOMOTIVE_HSN_CODES,
@@ -444,7 +444,7 @@ export default function CreateInvoicePage() {
         }
       };
 
-      const res = await fetch('http://localhost:5000/api/invoices/preview', {
+      const res = await fetch(`${getApiBaseUrl()}/invoices/preview`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(previewInvoiceObj)
