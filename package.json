@@ -1,0 +1,20 @@
+{
+  "name": "devi-motors-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=@devi-motors/api\" \"npm run dev --workspace=@devi-motors/web\"",
+    "build": "npm run build --workspace=@devi-motors/shared && npm run build --workspace=@devi-motors/api && npm run build --workspace=@devi-motors/web",
+    "seed": "npm run seed --workspace=@devi-motors/api",
+    "test": "npm run test --workspace=@devi-motors/shared && npm run test --workspace=@devi-motors/api"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "concurrently": "^9.1.2",
+    "typescript": "^5.9.3"
+  }
+}
