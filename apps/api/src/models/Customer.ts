@@ -19,6 +19,10 @@ export interface ICustomer extends Document {
   totalPaid: number;
   outstandingBalance: number;
   isArchived: boolean;
+  isdelete?: {
+    status: boolean;
+    datetime?: Date | null;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,7 +50,11 @@ const CustomerSchema = new Schema<ICustomer>(
     totalInvoiced: { type: Number, default: 0 },
     totalPaid: { type: Number, default: 0 },
     outstandingBalance: { type: Number, default: 0 },
-    isArchived: { type: Boolean, default: false }
+    isArchived: { type: Boolean, default: false },
+    isdelete: {
+      status: { type: Boolean, default: false, index: true },
+      datetime: { type: Date, default: null }
+    }
   },
   { timestamps: true }
 );

@@ -12,9 +12,14 @@ import {
   Eye,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  PenTool,
+  Pencil,
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { WhatsAppIcon, getQuotationWhatsAppUrl } from '../../lib/whatsapp';
 
 export default function QuotationsPage() {
   const router = useRouter();
@@ -24,16 +29,25 @@ export default function QuotationsPage() {
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
+  const [activeTab, setActiveTab] = useState<'active' | 'trash'>('active');
   const [convertingId, setConvertingId] = useState<string | null>(null);
+
+  // Soft delete modal state
+  const [quotationToDelete, setQuotationToDelete] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
   useEffect(() => {
     loadQuotations();
-  }, [search, selectedStatus, selectedType]);
+  }, [search, selectedStatus, selectedType, activeTab]);
 
   const loadQuotations = async () => {
     setLoading(true);
     try {
       const params: any = { search };
+      if (activeTab === 'trash') {
+        params.trash = 'true';
+      }
       if (selectedStatus !== 'all') params.status = selectedStatus;
       if (selectedType !== 'all') params.type = selectedType;
 
@@ -45,6 +59,37 @@ export default function QuotationsPage() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSoftDelete = async () => {
+    if (!quotationToDelete) return;
+    setDeleting(true);
+    try {
+      const res = await api.deleteQuotation(quotationToDelete._id);
+      if (res.success) {
+        setQuotationToDelete(null);
+        loadQuotations();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to soft delete quotation.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleRestore = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRestoringId(id);
+    try {
+      const res = await api.restoreQuotation(id);
+      if (res.success) {
+        loadQuotations();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to restore quotation.');
+    } finally {
+      setRestoringId(null);
     }
   };
 
@@ -143,6 +188,33 @@ export default function QuotationsPage() {
         </Link>
       </div>
 
+      {/* Active vs Trash View Switcher */}
+      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-800 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('active')}
+          className={`px-4 py-2 text-xs md:text-sm font-bold rounded-xl transition-all ${
+            activeTab === 'active'
+              ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+          }`}
+        >
+          Active Quotations
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('trash')}
+          className={`px-4 py-2 text-xs md:text-sm font-bold rounded-xl transition-all flex items-center gap-1.5 ${
+            activeTab === 'trash'
+              ? 'bg-red-600 text-white shadow-sm'
+              : 'text-gray-500 hover:text-red-600 dark:hover:text-red-400'
+          }`}
+        >
+          <Trash2 className="w-4 h-4" />
+          <span>Trash / Deleted</span>
+        </button>
+      </div>
+
       {/* Filter and Search Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-[#161E2E] border border-gray-200 dark:border-[#233048] p-4 rounded-2xl shadow-sm">
         <div className="relative flex-1 max-w-md">
@@ -167,17 +239,19 @@ export default function QuotationsPage() {
             <option value="invoice_style">Invoice Style</option>
           </select>
 
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 bg-gray-50 dark:bg-[#0E1522] border border-gray-200 dark:border-[#233048] rounded-xl text-gray-800 dark:text-gray-200 font-semibold cursor-pointer"
-          >
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="converted">Converted</option>
-            <option value="rejected">Rejected</option>
-          </select>
+          {activeTab === 'active' && (
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="px-3 py-2 bg-gray-50 dark:bg-[#0E1522] border border-gray-200 dark:border-[#233048] rounded-xl text-gray-800 dark:text-gray-200 font-semibold cursor-pointer"
+            >
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="converted">Converted</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          )}
         </div>
       </div>
 
@@ -187,8 +261,14 @@ export default function QuotationsPage() {
       ) : quotations.length === 0 ? (
         <div className="bg-white dark:bg-[#161E2E] border border-gray-200 dark:border-[#233048] p-12 text-center rounded-2xl">
           <FileSpreadsheet className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-gray-900 dark:text-white">No quotations found</h3>
-          <p className="text-xs text-gray-400 mt-1">Create your first quotation to get started.</p>
+          <h3 className="text-base font-bold text-gray-900 dark:text-white">
+            {activeTab === 'trash' ? 'Trash is empty' : 'No quotations found'}
+          </h3>
+          <p className="text-xs text-gray-400 mt-1">
+            {activeTab === 'trash'
+              ? 'No soft-deleted quotations found.'
+              : 'Create your first quotation to get started.'}
+          </p>
         </div>
       ) : (
         <div className="bg-white dark:bg-[#161E2E] border border-gray-200 dark:border-[#233048] rounded-2xl shadow-sm overflow-hidden">
@@ -201,7 +281,11 @@ export default function QuotationsPage() {
                   <th className="py-3.5">Service / Project</th>
                   <th className="py-3.5">Date</th>
                   <th className="py-3.5">Total Amount</th>
-                  <th className="py-3.5 text-center">Status</th>
+                  {activeTab === 'active' ? (
+                    <th className="py-3.5 text-center">Status</th>
+                  ) : (
+                    <th className="py-3.5">Deleted At</th>
+                  )}
                   <th className="py-3.5 pr-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -215,8 +299,23 @@ export default function QuotationsPage() {
                     <td className="py-4 pl-4 font-bold text-gray-900 dark:text-white">
                       {q.quotationNumber}
                     </td>
-                    <td className="py-4 text-gray-700 dark:text-gray-300 max-w-[180px] truncate">
-                      {q.customer?.name}
+                    <td className="py-4 text-gray-700 dark:text-gray-300 max-w-[180px]">
+                      <div className="font-semibold text-gray-900 dark:text-white truncate">
+                        {q.customer?.name}
+                      </div>
+                      {q.customer?.phone && (
+                        <a
+                          href={getQuotationWhatsAppUrl(q)}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-[#25D366] transition-colors mt-0.5"
+                          title={`Send quotation via WhatsApp to ${q.customer.phone}`}
+                        >
+                          <WhatsAppIcon className="w-3 h-3 text-[#25D366]" />
+                          <span>{q.customer.phone}</span>
+                        </a>
+                      )}
                     </td>
                     <td className="py-4 text-xs font-semibold text-gray-500 max-w-[220px] truncate">
                       {q.serviceTitle || q.vehicleProjectName || 'Automotive Service'}
@@ -231,50 +330,168 @@ export default function QuotationsPage() {
                     <td className="py-4 font-bold text-gray-900 dark:text-white">
                       ₹ {q.totalAmount?.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-4 text-center">{getStatusBadge(q.status)}</td>
-                    <td className="py-4 pr-4 text-right space-x-1" onClick={(e) => e.stopPropagation()}>
-                      {q.status === 'pending' && (
-                        <button
-                          onClick={(e) => handleStatusChange(q._id, 'approved', e)}
-                          title="Mark Approved"
-                          className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                    {activeTab === 'active' ? (
+                      <>
+                        <td className="py-4 text-center">{getStatusBadge(q.status)}</td>
+                        <td
+                          className="py-4 pr-4 text-right space-x-1"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <CheckCircle className="w-4 h-4" />
-                        </button>
-                      )}
-                      {(q.status === 'approved' || q.status === 'pending') && (
-                        <button
-                          onClick={(e) => handleConvert(q, e)}
-                          disabled={convertingId === q._id}
-                          title="Convert to Invoice"
-                          className="px-2.5 py-1 rounded-lg bg-[#F52B2B] text-white hover:bg-[#DC2626] text-xs font-semibold inline-flex items-center gap-1 shadow-sm"
+                          {/* Send via WhatsApp */}
+                          <a
+                            href={getQuotationWhatsAppUrl(q)}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={`Send quotation via WhatsApp to ${q.customer?.phone || 'customer'}`}
+                            className="inline-block p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            <WhatsAppIcon className="w-4 h-4" />
+                          </a>
+
+                          <Link
+                            href={`/quotations/create?editId=${q._id}`}
+                            title="Edit Quotation"
+                            className="inline-block p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Link>
+                          {q.status === 'pending' && (
+                            <button
+                              onClick={(e) => handleStatusChange(q._id, 'approved', e)}
+                              title="Mark Approved"
+                              className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </button>
+                          )}
+                          {(q.status === 'approved' || q.status === 'pending') && (
+                            <button
+                              onClick={(e) => handleConvert(q, e)}
+                              disabled={convertingId === q._id}
+                              title="Convert to Invoice"
+                              className="px-2.5 py-1 rounded-lg bg-[#F52B2B] text-white hover:bg-[#DC2626] text-xs font-semibold inline-flex items-center gap-1 shadow-sm"
+                            >
+                              <span>Convert</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {q.status === 'converted' && q.convertedInvoiceId && (
+                            <Link
+                              href={`/invoices/${q.convertedInvoiceId}`}
+                              className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs font-semibold hover:underline"
+                            >
+                              View Invoice
+                            </Link>
+                          )}
+                          <a
+                            href={api.downloadQuotationUrl(q._id, false)}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Download PDF (Badge Only - Default)"
+                            className="inline-block p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                          <a
+                            href={api.downloadQuotationUrl(q._id, true)}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Download PDF with Signature"
+                            className="inline-block p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            <PenTool className="w-4 h-4" />
+                          </a>
+                          <button
+                            onClick={() => setQuotationToDelete(q)}
+                            title="Soft Delete (Move to Trash)"
+                            className="inline-block p-1.5 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="py-4 text-xs text-red-500 font-semibold">
+                          {q.isdelete?.datetime
+                            ? new Date(q.isdelete.datetime).toLocaleString('en-IN')
+                            : 'Deleted'}
+                        </td>
+                        <td
+                          className="py-4 pr-4 text-right space-x-2"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <span>Convert</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      {q.status === 'converted' && q.convertedInvoiceId && (
-                        <Link
-                          href={`/invoices/${q.convertedInvoiceId}`}
-                          className="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 text-xs font-semibold hover:underline"
-                        >
-                          View Invoice
-                        </Link>
-                      )}
-                      <a
-                        href={api.downloadQuotationUrl(q._id)}
-                        target="_blank"
-                        rel="noreferrer"
-                        title="Download PDF"
-                        className="inline-block p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 transition-colors"
-                      >
-                        <Download className="w-4 h-4" />
-                      </a>
-                    </td>
+                          <button
+                            onClick={(e) => handleRestore(q._id, e)}
+                            disabled={restoringId === q._id}
+                            title="Restore Quotation"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-bold transition-colors"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>{restoringId === q._id ? 'Restoring...' : 'Restore'}</span>
+                          </button>
+                          <a
+                            href={api.downloadQuotationUrl(q._id, false)}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Download PDF"
+                            className="inline-block p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 transition-colors"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Soft Delete Confirmation Modal */}
+      {quotationToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setQuotationToDelete(null)}
+          />
+          <div className="relative w-full max-w-md bg-white dark:bg-[#161E2E] border border-gray-200 dark:border-[#233048] rounded-2xl shadow-2xl overflow-hidden z-10 p-6 space-y-4">
+            <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
+              <div className="p-2 rounded-xl bg-red-100 dark:bg-red-950/60">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                  Move Quotation to Trash?
+                </h3>
+                <p className="text-xs text-gray-500">Soft-delete confirmation</p>
+              </div>
+            </div>
+
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+              Quotation <strong className="text-gray-900 dark:text-white">{quotationToDelete.quotationNumber}</strong> for{' '}
+              <strong className="text-gray-900 dark:text-white">{quotationToDelete.customer?.name}</strong> (₹{quotationToDelete.totalAmount?.toLocaleString('en-IN')}) will be moved to the Trash. You can restore it anytime.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setQuotationToDelete(null)}
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-300 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleSoftDelete}
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-600/20 transition-all"
+              >
+                {deleting ? 'Moving to Trash...' : 'Move to Trash'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -9,6 +9,10 @@ export interface IPayment extends Document {
   transactionReference?: string;
   notes?: string;
   recordedBy?: string;
+  isdelete?: {
+    status: boolean;
+    datetime?: Date | null;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,7 +30,11 @@ const PaymentSchema = new Schema<IPayment>(
     },
     transactionReference: { type: String, trim: true },
     notes: { type: String },
-    recordedBy: { type: String }
+    recordedBy: { type: String },
+    isdelete: {
+      status: { type: Boolean, default: false, index: true },
+      datetime: { type: Date, default: null }
+    }
   },
   { timestamps: true }
 );

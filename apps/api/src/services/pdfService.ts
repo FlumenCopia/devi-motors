@@ -4,7 +4,7 @@ import puppeteer from 'puppeteer';
 import { IInvoice } from '../models/Invoice';
 import { IQuotation } from '../models/Quotation';
 import { ICompanySettings } from '../models/CompanySettings';
-import { formatDateDDMMYYYY } from '@devi-motors/shared';
+import { formatDateDDMMYYYY, getTaxBreakdownByRate } from '@devi-motors/shared';
 
 // Helper to get base64 data URI for local image
 function getBase64Image(filePath: string): string {
@@ -21,12 +21,38 @@ function getBase64Image(filePath: string): string {
   return '';
 }
 
-const assetsDir = path.resolve(__dirname, '../../../../assets');
-const logoB64 = getBase64Image(path.join(assetsDir, 'logo.png'));
-const stampB64 = getBase64Image(path.join(assetsDir, 'stamp.jpg'));
-const signatureB64 = getBase64Image(path.join(assetsDir, 'signature.jpg'));
+function resolveAsset(filename: string): string {
+  const candidates = [
+    path.join(__dirname, '../../../../assets', filename),
+    path.join(process.cwd(), 'assets', filename),
+    path.join(process.cwd(), '../../assets', filename),
+    path.resolve('d:/flumenx/devi motors/assets', filename)
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return '';
+}
 
-export function generateInvoiceHtml(invoice: IInvoice, settings: ICompanySettings): string {
+const logoB64 = getBase64Image(resolveAsset('logo.png'));
+// Default to transparent badge PNG for clean digital badging
+const stampB64 =
+  getBase64Image(resolveAsset('stamp_transparent.png')) ||
+  getBase64Image(resolveAsset('stamp.jpg'));
+const signatureB64 =
+  getBase64Image(resolveAsset('signature_transparent.png')) ||
+  getBase64Image(resolveAsset('signature.jpg'));
+
+export interface PdfRenderOptions {
+  withSignature?: boolean;
+}
+
+export function generateInvoiceHtml(
+  invoice: IInvoice,
+  settings: ICompanySettings,
+  options?: PdfRenderOptions
+): string {
+  const withSignature = options?.withSignature === true;
   const isInterState = invoice.customer.stateCode && invoice.customer.stateCode !== '32';
   const logoSrc = logoB64 || settings.logoUrl || '';
   const stampSrc = stampB64 || settings.stampUrl || '';
@@ -34,6 +60,11 @@ export function generateInvoiceHtml(invoice: IInvoice, settings: ICompanySetting
 
   const formattedInvoiceDate = formatDateDDMMYYYY(invoice.invoiceDate);
   const formattedOrderDate = invoice.orderDate ? formatDateDDMMYYYY(invoice.orderDate) : '';
+
+  // Determine HSN codes used
+  const itemHsns = Array.from(new Set(invoice.lineItems.map(it => it.hsnSac).filter(Boolean)));
+  const displayHsn = invoice.hsnCode || (itemHsns.length > 0 ? itemHsns.join(' / ') : '998714');
+  const taxSlabs = getTaxBreakdownByRate(invoice.lineItems, Boolean(isInterState));
 
   // Render empty rows to maintain fixed table height if items < 8
   const emptyRowsCount = Math.max(0, 7 - invoice.lineItems.length);
@@ -284,7 +315,7 @@ export function generateInvoiceHtml(invoice: IInvoice, settings: ICompanySetting
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      min-height: 95px;
+      min-height: 100px;
     }
     .for-company {
       font-weight: bold;
@@ -294,28 +325,26 @@ export function generateInvoiceHtml(invoice: IInvoice, settings: ICompanySetting
       white-space: nowrap;
     }
     .signature-area {
-      height: 48px;
+      height: 65px;
       position: relative;
       display: flex;
       align-items: center;
       justify-content: flex-end;
       padding-right: 25px;
     }
-    .stamp-overlay {
-      position: absolute;
-      right: 70px;
-      top: -12px;
+    .stamp-badge {
       width: 65px;
       height: 65px;
-      opacity: 0.85;
       object-fit: contain;
+      display: block;
+      margin-right: 15px;
     }
     .sig-overlay {
       position: absolute;
       right: 15px;
-      top: 5px;
-      width: 85px;
-      height: 42px;
+      top: 8px;
+      width: 90px;
+      height: 48px;
       object-fit: contain;
     }
     .auth-title {
@@ -376,7 +405,7 @@ export function generateInvoiceHtml(invoice: IInvoice, settings: ICompanySetting
   <!-- HSN Banner -->
   <div class="hsn-banner">
     <div class="hsn-label">HSN CODE</div>
-    <div class="hsn-val">${invoice.hsnCode || '998714'}</div>
+    <div class="hsn-val">${displayHsn}</div>
   </div>
 
   <!-- Items Table -->
@@ -385,9 +414,9 @@ export function generateInvoiceHtml(invoice: IInvoice, settings: ICompanySetting
       <tr>
         <th style="width:6%">Sl No</th>
         <th style="width:44%">Description of Goods</th>
-        <th style="width:9%">GST%</th>
         <th style="width:11%">Rate</th>
         <th style="width:7%">Qty</th>
+        <th style="width:9%">GST%</th>
         <th style="width:10%">GST</th>
         <th style="width:13%">Amount</th>
       </tr>
@@ -399,9 +428,9 @@ export function generateInvoiceHtml(invoice: IInvoice, settings: ICompanySetting
         <tr>
           <td class="col-sl">${item.slNo}.</td>
           <td class="col-desc">${item.description}</td>
-          <td class="col-gstp">${item.gstRate}%</td>
           <td class="col-rate">${item.rate}</td>
           <td class="col-qty">${item.quantity || 1}</td>
+          <td class="col-gstp">${item.gstRate}%</td>
           <td class="col-gst">${item.totalGstAmount}</td>
           <td class="col-amt">${item.totalAmount.toLocaleString('en-IN')}</td>
         </tr>
@@ -412,8 +441,8 @@ export function generateInvoiceHtml(invoice: IInvoice, settings: ICompanySetting
       <tr class="total-row">
         <td></td>
         <td style="text-align:center; font-weight:bold;">Total</td>
-        <td></td>
         <td style="text-align:center;">${invoice.subtotalTaxable}</td>
+        <td></td>
         <td></td>
         <td style="text-align:center;">${invoice.totalGst}</td>
         <td style="text-align:right; padding-right:8px;">${invoice.totalAmount.toLocaleString('en-IN')}</td>
@@ -455,23 +484,70 @@ export function generateInvoiceHtml(invoice: IInvoice, settings: ICompanySetting
         `
       }
     </tr>
-    <tr>
-      <td style="height:26px;">${invoice.subtotalTaxable.toLocaleString('en-IN')}</td>
-      ${
-        isInterState
-          ? `
-          <td>${invoice.lineItems[0]?.igstRate || 18}%</td>
-          <td>${invoice.totalIgst.toFixed(1)}</td>
-        `
-          : `
-          <td>${(invoice.lineItems[0]?.cgstRate || 9)}%</td>
-          <td>${invoice.totalCgst.toFixed(1)}</td>
-          <td>${(invoice.lineItems[0]?.sgstRate || 9)}%</td>
-          <td>${invoice.totalSgst.toFixed(1)}</td>
-        `
-      }
-      <td class="tax-total-cell">${invoice.totalAmount.toLocaleString('en-IN')}</td>
-    </tr>
+    ${
+      taxSlabs.length <= 1
+        ? `
+      <tr>
+        <td style="height:26px;">${(taxSlabs[0]?.taxableAmount || invoice.subtotalTaxable).toLocaleString('en-IN')}</td>
+        ${
+          isInterState
+            ? `
+            <td>${taxSlabs[0]?.igstRate ?? 18}%</td>
+            <td>${(taxSlabs[0]?.igstAmount ?? invoice.totalIgst).toFixed(1)}</td>
+          `
+            : `
+            <td>${taxSlabs[0]?.cgstRate ?? 9}%</td>
+            <td>${(taxSlabs[0]?.cgstAmount ?? invoice.totalCgst).toFixed(1)}</td>
+            <td>${taxSlabs[0]?.sgstRate ?? 9}%</td>
+            <td>${(taxSlabs[0]?.sgstAmount ?? invoice.totalSgst).toFixed(1)}</td>
+          `
+        }
+        <td class="tax-total-cell">${invoice.totalAmount.toLocaleString('en-IN')}</td>
+      </tr>
+    `
+        : `
+      ${taxSlabs
+        .map(
+          slab => `
+        <tr>
+          <td style="height:22px;">${slab.taxableAmount.toLocaleString('en-IN')}</td>
+          ${
+            isInterState
+              ? `
+              <td>${slab.igstRate}%</td>
+              <td>${slab.igstAmount.toFixed(1)}</td>
+            `
+              : `
+              <td>${slab.cgstRate}%</td>
+              <td>${slab.cgstAmount.toFixed(1)}</td>
+              <td>${slab.sgstRate}%</td>
+              <td>${slab.sgstAmount.toFixed(1)}</td>
+            `
+          }
+          <td>${slab.totalAmount.toLocaleString('en-IN')}</td>
+        </tr>
+      `
+        )
+        .join('')}
+      <tr style="background:#fafafa; font-weight:bold;">
+        <td>Total: ${invoice.subtotalTaxable.toLocaleString('en-IN')}</td>
+        ${
+          isInterState
+            ? `
+            <td>-</td>
+            <td>${invoice.totalIgst.toFixed(1)}</td>
+          `
+            : `
+            <td>-</td>
+            <td>${invoice.totalCgst.toFixed(1)}</td>
+            <td>-</td>
+            <td>${invoice.totalSgst.toFixed(1)}</td>
+          `
+        }
+        <td class="tax-total-cell">${invoice.totalAmount.toLocaleString('en-IN')}</td>
+      </tr>
+    `
+    }
   </table>
 
   <!-- Footer Table -->
@@ -487,8 +563,8 @@ export function generateInvoiceHtml(invoice: IInvoice, settings: ICompanySetting
       <td class="sign-box">
         <div class="for-company">For Devi Motors</div>
         <div class="signature-area">
-          ${stampSrc ? `<img src="${stampSrc}" class="stamp-overlay" alt="Stamp">` : ''}
-          ${signatureSrc ? `<img src="${signatureSrc}" class="sig-overlay" alt="Sign">` : ''}
+          ${stampSrc ? `<img src="${stampSrc}" class="stamp-badge" alt="Digital Stamp Badge">` : ''}
+          ${withSignature && signatureSrc ? `<img src="${signatureSrc}" class="sig-overlay" alt="Authorized Signature">` : ''}
         </div>
         <div class="auth-title">Authorized Signatory</div>
       </td>
@@ -499,7 +575,12 @@ export function generateInvoiceHtml(invoice: IInvoice, settings: ICompanySetting
 `;
 }
 
-export function generateQuotationHtml(quotation: IQuotation, settings: ICompanySettings): string {
+export function generateQuotationHtml(
+  quotation: IQuotation,
+  settings: ICompanySettings,
+  options?: PdfRenderOptions
+): string {
+  const withSignature = options?.withSignature === true;
   const logoSrc = logoB64 || settings.logoUrl || '';
   const stampSrc = stampB64 || settings.stampUrl || '';
   const signatureSrc = signatureB64 || settings.signatureUrl || '';
@@ -632,21 +713,21 @@ export function generateQuotationHtml(quotation: IQuotation, settings: ICompanyS
       width: 140px;
       height: 70px;
       margin-top: 10px;
+      display: flex;
+      align-items: center;
     }
-    .stamp-img {
-      position: absolute;
-      left: 0;
-      top: 0;
+    .stamp-badge {
       width: 65px;
       height: 65px;
-      opacity: 0.85;
+      object-fit: contain;
     }
     .sig-img {
       position: absolute;
-      left: 30px;
-      top: 15px;
-      width: 80px;
-      height: 40px;
+      left: 35px;
+      top: 12px;
+      width: 85px;
+      height: 45px;
+      object-fit: contain;
     }
   </style>
 </head>
@@ -685,7 +766,7 @@ export function generateQuotationHtml(quotation: IQuotation, settings: ICompanyS
 
   <div class="charges-block">
     <div class="charges-line">Service charges: Rs ${(quotation.serviceCharge || quotation.subtotalTaxable).toLocaleString('en-IN')}</div>
-    <div class="charges-line">GST @${quotation.gstRate || 18}%: Rs ${(quotation.totalGst).toLocaleString('en-IN')}</div>
+    <div class="charges-line">GST @${quotation.gstRate !== undefined && quotation.gstRate !== null ? quotation.gstRate : 18}%: Rs ${(quotation.totalGst).toLocaleString('en-IN')}</div>
     <div class="total-line">Total Quotation: Rs ${(quotation.totalAmount).toLocaleString('en-IN')}</div>
   </div>
 
@@ -702,8 +783,8 @@ export function generateQuotationHtml(quotation: IQuotation, settings: ICompanyS
       <div class="company-name">Devi Motors</div>
       <div class="company-tag">Professional Car Painting,<br>Polishing & Detailing</div>
       <div class="sig-stamp-container">
-        ${stampSrc ? `<img src="${stampSrc}" class="stamp-img" alt="Stamp">` : ''}
-        ${signatureSrc ? `<img src="${signatureSrc}" class="sig-img" alt="Signature">` : ''}
+        ${stampSrc ? `<img src="${stampSrc}" class="stamp-badge" alt="Digital Stamp Badge">` : ''}
+        ${withSignature && signatureSrc ? `<img src="${signatureSrc}" class="sig-img" alt="Authorized Signature">` : ''}
       </div>
     </div>
   </div>
@@ -720,13 +801,13 @@ export function generateQuotationHtml(quotation: IQuotation, settings: ICompanyS
     invoiceNumber: quotation.quotationNumber,
     invoiceDate: quotation.quotationDate,
     orderDate: quotation.validUntil,
-    hsnCode: '998714',
+    hsnCode: (quotation.lineItems && quotation.lineItems.length > 0 && quotation.lineItems[0].hsnSac) || '998714',
     lineItems: quotation.lineItems || [],
     bankDetails: settings.bankDetails,
     amountInWords: quotation.amountInWords || ''
   } as unknown as IInvoice;
 
-  const invoiceHtml = generateInvoiceHtml(pseudoInvoice, settings);
+  const invoiceHtml = generateInvoiceHtml(pseudoInvoice, settings, options);
   // Replace "Bill No" with "Quotation No", "Bill Date" with "Quotation Date", and "TAX INVOICE" references
   return invoiceHtml
     .replace('Bill No', 'Quotation No')

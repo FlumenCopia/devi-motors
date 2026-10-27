@@ -55,7 +55,9 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         <div>
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
-            <img src="/assets/logo.png" alt="DEVI MOTORS" className="h-8 w-auto object-contain" />
+            <div className="flex-1 flex justify-center pl-6">
+              <img src="/assets/logo.png" alt="DEVI MOTORS" className="h-11 w-auto max-w-[170px] object-contain" />
+            </div>
             <button
               onClick={onClose}
               className="p-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"

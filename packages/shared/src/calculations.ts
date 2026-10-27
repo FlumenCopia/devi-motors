@@ -80,6 +80,53 @@ export function calculateLineItem(input: CalculateLineItemInput): LineItem {
   };
 }
 
+export interface TaxSlabBreakdown {
+  gstRate: number;
+  taxableAmount: number;
+  cgstRate: number;
+  cgstAmount: number;
+  sgstRate: number;
+  sgstAmount: number;
+  igstRate: number;
+  igstAmount: number;
+  totalGstAmount: number;
+  totalAmount: number;
+}
+
+export function getTaxBreakdownByRate(
+  items: LineItem[],
+  isInterState: boolean = false
+): TaxSlabBreakdown[] {
+  const map = new Map<number, TaxSlabBreakdown>();
+
+  for (const item of items) {
+    const rate = Math.max(0, item.gstRate ?? 0);
+    const existing = map.get(rate) || {
+      gstRate: rate,
+      taxableAmount: 0,
+      cgstRate: isInterState ? 0 : rate / 2,
+      cgstAmount: 0,
+      sgstRate: isInterState ? 0 : rate / 2,
+      sgstAmount: 0,
+      igstRate: isInterState ? rate : 0,
+      igstAmount: 0,
+      totalGstAmount: 0,
+      totalAmount: 0
+    };
+
+    existing.taxableAmount = roundToTwoDecimals(existing.taxableAmount + (item.taxableAmount || 0));
+    existing.cgstAmount = roundToTwoDecimals(existing.cgstAmount + (item.cgstAmount || 0));
+    existing.sgstAmount = roundToTwoDecimals(existing.sgstAmount + (item.sgstAmount || 0));
+    existing.igstAmount = roundToTwoDecimals(existing.igstAmount + (item.igstAmount || 0));
+    existing.totalGstAmount = roundToTwoDecimals(existing.totalGstAmount + (item.totalGstAmount || 0));
+    existing.totalAmount = roundToTwoDecimals(existing.totalAmount + (item.totalAmount || 0));
+
+    map.set(rate, existing);
+  }
+
+  return Array.from(map.values()).sort((a, b) => a.gstRate - b.gstRate);
+}
+
 export interface DocumentCalculations {
   subtotalTaxable: number;
   totalCgst: number;
@@ -89,11 +136,13 @@ export interface DocumentCalculations {
   roundOff: number;
   totalAmount: number;
   amountInWords: string;
+  taxBreakdown: TaxSlabBreakdown[];
 }
 
 export function calculateDocumentTotals(
   items: LineItem[],
-  applyRoundOff: boolean = false
+  applyRoundOff: boolean = false,
+  isInterState: boolean = false
 ): DocumentCalculations {
   let subtotalTaxable = 0;
   let totalCgst = 0;
@@ -125,6 +174,7 @@ export function calculateDocumentTotals(
   }
 
   const amountInWords = numberToIndianWords(totalAmount);
+  const taxBreakdown = getTaxBreakdownByRate(items, isInterState);
 
   return {
     subtotalTaxable,
@@ -134,6 +184,7 @@ export function calculateDocumentTotals(
     totalGst,
     roundOff,
     totalAmount,
-    amountInWords
+    amountInWords,
+    taxBreakdown
   };
 }

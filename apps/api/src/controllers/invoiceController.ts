@@ -22,11 +22,19 @@ export async function listInvoices(req: Request, res: Response): Promise<void> {
       paymentStatus,
       financialYear,
       customerId,
+      trash,
+      isDeleted,
       page = 1,
       limit = 50
     } = req.query;
 
     const filter: any = {};
+
+    if (trash === 'true' || isDeleted === 'true') {
+      filter['isdelete.status'] = true;
+    } else {
+      filter['isdelete.status'] = { $ne: true };
+    }
 
     if (type) filter.invoiceType = type;
     if (status) filter.status = status;
@@ -91,7 +99,7 @@ export async function calculateInvoice(req: Request, res: Response): Promise<voi
         rate: Number(item.rate) || 0, // BEFORE GST
         discountType: item.discountType || 'fixed',
         discountValue: Number(item.discountValue) || 0,
-        gstRate: Number(item.gstRate) || 18,
+        gstRate: item.gstRate !== undefined && item.gstRate !== null && !isNaN(Number(item.gstRate)) ? Number(item.gstRate) : 18,
         isInterState
       })
     );
@@ -139,7 +147,7 @@ export async function createInvoiceDraft(req: AuthRequest, res: Response): Promi
         rate: Number(item.rate) || 0, // BEFORE GST
         discountType: item.discountType || 'fixed',
         discountValue: Number(item.discountValue) || 0,
-        gstRate: Number(item.gstRate) || 18,
+        gstRate: item.gstRate !== undefined && item.gstRate !== null && !isNaN(Number(item.gstRate)) ? Number(item.gstRate) : 18,
         isInterState
       })
     );
@@ -346,7 +354,7 @@ export async function updateInvoice(req: AuthRequest, res: Response): Promise<vo
         rate: Number(item.rate) || 0, // BEFORE GST
         discountType: item.discountType || 'fixed',
         discountValue: Number(item.discountValue) || 0,
-        gstRate: Number(item.gstRate) || 18,
+        gstRate: item.gstRate !== undefined && item.gstRate !== null && !isNaN(Number(item.gstRate)) ? Number(item.gstRate) : 18,
         isInterState
       })
     );
@@ -382,13 +390,14 @@ export async function updateInvoice(req: AuthRequest, res: Response): Promise<vo
 export async function previewInvoiceHtml(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;
+    const withSignature = req.query.withSignature === 'true' || req.query.signature === 'true';
     const invoice = await InvoiceModel.findById(id);
     if (!invoice) {
       res.status(404).send('Invoice not found');
       return;
     }
     const settings = (await CompanySettingsModel.findOne()) || (new CompanySettingsModel() as any);
-    const html = generateInvoiceHtml(invoice, settings);
+    const html = generateInvoiceHtml(invoice, settings, { withSignature });
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
   } catch (error: any) {
@@ -399,22 +408,89 @@ export async function previewInvoiceHtml(req: Request, res: Response): Promise<v
 export async function downloadInvoicePdf(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;
+    const withSignature = req.query.withSignature === 'true' || req.query.signature === 'true';
     const invoice = await InvoiceModel.findById(id);
     if (!invoice) {
       res.status(404).json({ success: false, message: 'Invoice not found.' });
       return;
     }
     const settings = (await CompanySettingsModel.findOne()) || (new CompanySettingsModel() as any);
-    const html = generateInvoiceHtml(invoice, settings);
+    const html = generateInvoiceHtml(invoice, settings, { withSignature });
     const pdfBuffer = await renderPdfBuffer(html);
 
     const safeNumber = invoice.invoiceNumber.replace(/[\/\\]/g, '-');
+    const suffix = withSignature ? '-with-signature' : '';
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="Invoice-${safeNumber}.pdf"`);
+    res.setHeader('Content-Disposition', `inline; filename="Invoice-${safeNumber}${suffix}.pdf"`);
     res.setHeader('Content-Length', pdfBuffer.length);
     res.send(pdfBuffer);
   } catch (error: any) {
     console.error('PDF Generation Error:', error);
     res.status(500).json({ success: false, message: 'Failed to generate PDF.' });
+  }
+}
+
+export async function deleteInvoice(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const invoice = await InvoiceModel.findById(id);
+    if (!invoice) {
+      res.status(404).json({ success: false, message: 'Invoice not found.' });
+      return;
+    }
+
+    invoice.isdelete = {
+      status: true,
+      datetime: new Date()
+    };
+    await invoice.save();
+
+    await AuditLogModel.create({
+      action: 'DELETE_INVOICE',
+      resource: 'Invoice',
+      resourceId: invoice._id.toString(),
+      details: {
+        invoiceNumber: invoice.invoiceNumber,
+        customerName: invoice.customer.name,
+        softDeleted: true
+      },
+      performedBy: req.user?.name || 'Admin'
+    });
+
+    res.json({ success: true, message: 'Invoice soft-deleted successfully.', invoice });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export async function restoreInvoice(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const invoice = await InvoiceModel.findById(id);
+    if (!invoice) {
+      res.status(404).json({ success: false, message: 'Invoice not found.' });
+      return;
+    }
+
+    invoice.isdelete = {
+      status: false,
+      datetime: null
+    };
+    await invoice.save();
+
+    await AuditLogModel.create({
+      action: 'RESTORE_INVOICE',
+      resource: 'Invoice',
+      resourceId: invoice._id.toString(),
+      details: {
+        invoiceNumber: invoice.invoiceNumber,
+        customerName: invoice.customer.name
+      },
+      performedBy: req.user?.name || 'Admin'
+    });
+
+    res.json({ success: true, message: 'Invoice restored successfully.', invoice });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 }

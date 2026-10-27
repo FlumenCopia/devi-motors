@@ -15,8 +15,14 @@ import {
 
 export async function listQuotations(req: Request, res: Response): Promise<void> {
   try {
-    const { search, type, status, customerId, page = 1, limit = 50 } = req.query;
+    const { search, type, status, customerId, trash, isDeleted, page = 1, limit = 50 } = req.query;
     const filter: any = {};
+
+    if (trash === 'true' || isDeleted === 'true') {
+      filter['isdelete.status'] = true;
+    } else {
+      filter['isdelete.status'] = { $ne: true };
+    }
 
     if (type) filter.quotationType = type;
     if (status) filter.status = status;
@@ -104,7 +110,7 @@ export async function createQuotation(req: AuthRequest, res: Response): Promise<
 
     if (quotationType === 'proposal_style') {
       subtotalTaxable = Number(serviceCharge) || 0;
-      const effectiveGstRate = Number(gstRate) || 18;
+      const effectiveGstRate = gstRate !== undefined && gstRate !== null && !isNaN(Number(gstRate)) ? Number(gstRate) : 18;
       totalGst = Math.round((subtotalTaxable * (effectiveGstRate / 100) + Number.EPSILON) * 100) / 100;
       totalAmount = subtotalTaxable + totalGst;
       if (isInterState) {
@@ -125,7 +131,7 @@ export async function createQuotation(req: AuthRequest, res: Response): Promise<
           rate: Number(item.rate) || 0,
           discountType: item.discountType || 'fixed',
           discountValue: Number(item.discountValue) || 0,
-          gstRate: Number(item.gstRate) || 18,
+          gstRate: item.gstRate !== undefined && item.gstRate !== null && !isNaN(Number(item.gstRate)) ? Number(item.gstRate) : 18,
           isInterState
         })
       );
@@ -156,7 +162,7 @@ export async function createQuotation(req: AuthRequest, res: Response): Promise<
       closingNote: closingNote || 'Thank you for choosing us, we look forward to giving your vehicle a flawless finish.',
       lineItems: processedLineItems,
       subtotalTaxable,
-      gstRate: Number(gstRate) || 18,
+      gstRate: gstRate !== undefined && gstRate !== null && !isNaN(Number(gstRate)) ? Number(gstRate) : 18,
       totalCgst,
       totalSgst,
       totalIgst,
@@ -241,7 +247,7 @@ export async function convertQuotationToInvoice(req: AuthRequest, res: Response)
           description: quotation.serviceTitle || quotation.vehicleProjectName || 'Automotive Service',
           quantity: 1,
           rate: quotation.serviceCharge || quotation.subtotalTaxable,
-          gstRate: quotation.gstRate || 18,
+          gstRate: quotation.gstRate !== undefined && quotation.gstRate !== null ? Number(quotation.gstRate) : 18,
           isInterState: Boolean(quotation.customer.stateCode && quotation.customer.stateCode !== '32')
         })
       ];
@@ -291,13 +297,14 @@ export async function convertQuotationToInvoice(req: AuthRequest, res: Response)
 export async function previewQuotationHtml(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;
+    const withSignature = req.query.withSignature === 'true' || req.query.signature === 'true';
     const quotation = await QuotationModel.findById(id);
     if (!quotation) {
       res.status(404).send('Quotation not found');
       return;
     }
     const settings = (await CompanySettingsModel.findOne()) || (new CompanySettingsModel() as any);
-    const html = generateQuotationHtml(quotation, settings);
+    const html = generateQuotationHtml(quotation, settings, { withSignature });
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
   } catch (error: any) {
@@ -308,22 +315,89 @@ export async function previewQuotationHtml(req: Request, res: Response): Promise
 export async function downloadQuotationPdf(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;
+    const withSignature = req.query.withSignature === 'true' || req.query.signature === 'true';
     const quotation = await QuotationModel.findById(id);
     if (!quotation) {
       res.status(404).json({ success: false, message: 'Quotation not found.' });
       return;
     }
     const settings = (await CompanySettingsModel.findOne()) || (new CompanySettingsModel() as any);
-    const html = generateQuotationHtml(quotation, settings);
+    const html = generateQuotationHtml(quotation, settings, { withSignature });
     const pdfBuffer = await renderPdfBuffer(html);
 
     const safeNumber = quotation.quotationNumber.replace(/[\/\\]/g, '-');
+    const suffix = withSignature ? '-with-signature' : '';
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="Quotation-${safeNumber}.pdf"`);
+    res.setHeader('Content-Disposition', `inline; filename="Quotation-${safeNumber}${suffix}.pdf"`);
     res.setHeader('Content-Length', pdfBuffer.length);
     res.send(pdfBuffer);
   } catch (error: any) {
     console.error('Quotation PDF Generation Error:', error);
     res.status(500).json({ success: false, message: 'Failed to generate Quotation PDF.' });
+  }
+}
+
+export async function deleteQuotation(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const quotation = await QuotationModel.findById(id);
+    if (!quotation) {
+      res.status(404).json({ success: false, message: 'Quotation not found.' });
+      return;
+    }
+
+    quotation.isdelete = {
+      status: true,
+      datetime: new Date()
+    };
+    await quotation.save();
+
+    await AuditLogModel.create({
+      action: 'DELETE_QUOTATION',
+      resource: 'Quotation',
+      resourceId: quotation._id.toString(),
+      details: {
+        quotationNumber: quotation.quotationNumber,
+        customerName: quotation.customer.name,
+        softDeleted: true
+      },
+      performedBy: req.user?.name || 'Admin'
+    });
+
+    res.json({ success: true, message: 'Quotation soft-deleted successfully.', quotation });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export async function restoreQuotation(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const quotation = await QuotationModel.findById(id);
+    if (!quotation) {
+      res.status(404).json({ success: false, message: 'Quotation not found.' });
+      return;
+    }
+
+    quotation.isdelete = {
+      status: false,
+      datetime: null
+    };
+    await quotation.save();
+
+    await AuditLogModel.create({
+      action: 'RESTORE_QUOTATION',
+      resource: 'Quotation',
+      resourceId: quotation._id.toString(),
+      details: {
+        quotationNumber: quotation.quotationNumber,
+        customerName: quotation.customer.name
+      },
+      performedBy: req.user?.name || 'Admin'
+    });
+
+    res.json({ success: true, message: 'Quotation restored successfully.', quotation });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 }

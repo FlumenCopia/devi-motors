@@ -23,7 +23,19 @@ const port = process.env.PORT || 5000;
 const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
 app.use(
   cors({
-    origin: [clientUrl, 'http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, uptime pingers)
+      if (!origin) return callback(null, true);
+      if (
+        origin === clientUrl ||
+        origin.endsWith('.vercel.app') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1')
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true
   })
 );
@@ -37,8 +49,8 @@ app.use('/assets', express.static(assetsDir));
 const uploadsDir = path.resolve(__dirname, '../uploads');
 app.use('/uploads', express.static(uploadsDir));
 
-// Health check
-app.get('/health', (req, res) => {
+// Health check for Render & UptimeRobot keep-alive
+app.get(['/health', '/api/health'], (req, res) => {
   res.json({
     status: 'ok',
     service: 'DEVI MOTORS API',

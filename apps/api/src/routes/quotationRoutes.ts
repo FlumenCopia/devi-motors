@@ -5,6 +5,8 @@ import {
   createQuotation,
   updateQuotation,
   updateQuotationStatus,
+  deleteQuotation,
+  restoreQuotation,
   convertQuotationToInvoice,
   previewQuotationHtml,
   downloadQuotationPdf
@@ -25,6 +27,8 @@ router.post('/', createQuotation);
 router.get('/:id', getQuotation);
 router.put('/:id', updateQuotation);
 router.patch('/:id/status', updateQuotationStatus);
+router.delete('/:id', deleteQuotation);
+router.post('/:id/restore', restoreQuotation);
 router.post('/:id/convert', convertQuotationToInvoice);
 
 export default router;

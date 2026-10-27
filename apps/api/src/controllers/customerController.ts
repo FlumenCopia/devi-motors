@@ -5,8 +5,15 @@ import { QuotationModel } from '../models/Quotation';
 
 export async function listCustomers(req: Request, res: Response): Promise<void> {
   try {
-    const { search, type, page = 1, limit = 50 } = req.query;
-    const filter: any = { isArchived: false };
+    const { search, type, trash, isDeleted, page = 1, limit = 50 } = req.query;
+    const filter: any = {};
+
+    if (trash === 'true' || isDeleted === 'true') {
+      filter['isdelete.status'] = true;
+    } else {
+      filter['isdelete.status'] = { $ne: true };
+      filter.isArchived = false;
+    }
 
     if (type && type !== 'all') {
       filter.customerType = type;
@@ -137,6 +144,48 @@ export async function archiveCustomer(req: Request, res: Response): Promise<void
     customer.isArchived = !customer.isArchived;
     await customer.save();
     res.json({ success: true, isArchived: customer.isArchived });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export async function deleteCustomer(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const customer = await CustomerModel.findById(id);
+    if (!customer) {
+      res.status(404).json({ success: false, message: 'Customer not found.' });
+      return;
+    }
+
+    customer.isdelete = {
+      status: true,
+      datetime: new Date()
+    };
+    await customer.save();
+
+    res.json({ success: true, message: 'Customer soft-deleted successfully.', customer });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export async function restoreCustomer(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const customer = await CustomerModel.findById(id);
+    if (!customer) {
+      res.status(404).json({ success: false, message: 'Customer not found.' });
+      return;
+    }
+
+    customer.isdelete = {
+      status: false,
+      datetime: null
+    };
+    await customer.save();
+
+    res.json({ success: true, message: 'Customer restored successfully.', customer });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -1,3 +1,8 @@
+export interface SoftDelete {
+  status: boolean;
+  datetime?: Date | string | null;
+}
+
 export type CustomerType = 'individual' | 'company';
 
 export interface Customer {
@@ -19,6 +24,7 @@ export interface Customer {
   totalInvoiced?: number;
   totalPaid?: number;
   outstandingBalance?: number;
+  isdelete?: SoftDelete;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -97,6 +103,7 @@ export interface Invoice {
   bankDetails: BankDetails;
   notes?: string;
   paymentTerms?: string;
+  isdelete?: SoftDelete;
   issuedAt?: string;
   issuedBy?: string;
   createdAt?: string;
@@ -147,6 +154,7 @@ export interface Quotation {
   status: QuotationStatus;
   convertedInvoiceId?: string;
   convertedInvoiceNumber?: string;
+  isdelete?: SoftDelete;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -162,6 +170,7 @@ export interface Payment {
   transactionReference?: string;
   notes?: string;
   recordedBy?: string;
+  isdelete?: SoftDelete;
   createdAt?: string;
 }
 

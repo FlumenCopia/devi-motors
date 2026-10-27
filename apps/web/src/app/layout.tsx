@@ -8,9 +8,23 @@ export const metadata: Metadata = {
   title: 'DEVI MOTORS — Invoice & Customer Management',
   description:
     'Invoice, Quotation, and Customer Management System for DEVI MOTORS, Thiruvananthapuram, Kerala.',
+  manifest: '/manifest.json',
   icons: {
     icon: '/assets/logo.png',
+    apple: '/assets/logo.png'
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Devi Motors'
+  }
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#F52B2B'
 };
 
 export default function RootLayout({

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Users,
   Search,
@@ -13,19 +13,25 @@ import {
   Car,
   ChevronRight,
   X,
-  AlertCircle
+  AlertCircle,
+  Pencil,
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
 import { api } from '../../lib/api';
 
 export default function CustomersPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedType, setSelectedType] = useState('all');
+  const [activeTab, setActiveTab] = useState<'active' | 'trash'>('active');
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
     customerType: 'individual',
@@ -43,20 +49,31 @@ export default function CustomersPage() {
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState('');
 
+  // Soft delete state
+  const [customerToDelete, setCustomerToDelete] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+
   useEffect(() => {
     if (searchParams.get('action') === 'new') {
-      setIsModalOpen(true);
+      handleOpenAddModal();
     }
   }, [searchParams]);
 
   useEffect(() => {
     loadCustomers();
-  }, [search, selectedType]);
+  }, [search, selectedType, activeTab]);
 
   const loadCustomers = async () => {
     setLoading(true);
     try {
-      const res = await api.listCustomers({ search, type: selectedType });
+      const params: any = { search };
+      if (activeTab === 'trash') {
+        params.trash = 'true';
+      }
+      if (selectedType !== 'all') params.type = selectedType;
+
+      const res = await api.listCustomers(params);
       if (res.success) {
         setCustomers(res.customers || []);
       }
@@ -67,7 +84,49 @@ export default function CustomersPage() {
     }
   };
 
-  const handleCreateCustomer = async (e: React.FormEvent) => {
+  const handleOpenAddModal = () => {
+    setEditingCustomer(null);
+    setFormData({
+      name: '',
+      customerType: 'individual',
+      contactPerson: '',
+      phone: '',
+      email: '',
+      billingAddress: '',
+      state: 'Kerala',
+      stateCode: '32',
+      pinCode: '',
+      gstin: '',
+      vehicleNumbers: '',
+      notes: ''
+    });
+    setModalError('');
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (cust: any, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEditingCustomer(cust);
+    setFormData({
+      name: cust.name || '',
+      customerType: cust.customerType || 'individual',
+      contactPerson: cust.contactPerson || '',
+      phone: cust.phone || '',
+      email: cust.email || '',
+      billingAddress: cust.billingAddress || '',
+      state: cust.state || 'Kerala',
+      stateCode: cust.stateCode || '32',
+      pinCode: cust.pinCode || '',
+      gstin: cust.gstin || '',
+      vehicleNumbers: cust.vehicleNumbers ? cust.vehicleNumbers.join(', ') : '',
+      notes: cust.notes || ''
+    });
+    setModalError('');
+    setIsModalOpen(true);
+  };
+
+  const handleSaveCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     setModalError('');
     setSubmitting(true);
@@ -80,33 +139,60 @@ export default function CustomersPage() {
             .filter(Boolean)
         : [];
 
-      const res = await api.createCustomer({
+      const payload = {
         ...formData,
         vehicleNumbers: vehicles
-      });
+      };
 
+      if (editingCustomer) {
+        const res = await api.updateCustomer(editingCustomer._id, payload);
+        if (res.success) {
+          setIsModalOpen(false);
+          loadCustomers();
+        }
+      } else {
+        const res = await api.createCustomer(payload);
+        if (res.success) {
+          setIsModalOpen(false);
+          loadCustomers();
+        }
+      }
+    } catch (err: any) {
+      setModalError(err.message || 'Failed to save customer.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSoftDelete = async () => {
+    if (!customerToDelete) return;
+    setDeleting(true);
+    try {
+      const res = await api.deleteCustomer(customerToDelete._id);
       if (res.success) {
-        setIsModalOpen(false);
-        setFormData({
-          name: '',
-          customerType: 'individual',
-          contactPerson: '',
-          phone: '',
-          email: '',
-          billingAddress: '',
-          state: 'Kerala',
-          stateCode: '32',
-          pinCode: '',
-          gstin: '',
-          vehicleNumbers: '',
-          notes: ''
-        });
+        setCustomerToDelete(null);
         loadCustomers();
       }
     } catch (err: any) {
-      setModalError(err.message || 'Failed to create customer.');
+      alert(err.message || 'Failed to soft delete customer.');
     } finally {
-      setSubmitting(false);
+      setDeleting(false);
+    }
+  };
+
+  const handleRestore = async (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setRestoringId(id);
+    try {
+      const res = await api.restoreCustomer(id);
+      if (res.success) {
+        loadCustomers();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to restore customer.');
+    } finally {
+      setRestoringId(null);
     }
   };
 
@@ -131,11 +217,38 @@ export default function CustomersPage() {
         </div>
 
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleOpenAddModal}
           className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#F52B2B] hover:bg-[#DC2626] text-white font-semibold text-xs md:text-sm rounded-xl shadow-md shadow-[#F52B2B]/20 transition-all self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Add Customer</span>
+        </button>
+      </div>
+
+      {/* Active vs Trash View Switcher */}
+      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-800 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('active')}
+          className={`px-4 py-2 text-xs md:text-sm font-bold rounded-xl transition-all ${
+            activeTab === 'active'
+              ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+          }`}
+        >
+          Active Customers
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('trash')}
+          className={`px-4 py-2 text-xs md:text-sm font-bold rounded-xl transition-all flex items-center gap-1.5 ${
+            activeTab === 'trash'
+              ? 'bg-red-600 text-white shadow-sm'
+              : 'text-gray-500 hover:text-red-600 dark:hover:text-red-400'
+          }`}
+        >
+          <Trash2 className="w-4 h-4" />
+          <span>Trash / Deleted</span>
         </button>
       </div>
 
@@ -177,16 +290,22 @@ export default function CustomersPage() {
       ) : customers.length === 0 ? (
         <div className="bg-white dark:bg-[#161E2E] border border-gray-200 dark:border-[#233048] p-12 text-center rounded-2xl">
           <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-gray-900 dark:text-white">No customers found</h3>
-          <p className="text-xs text-gray-400 mt-1">Add your first customer to get started.</p>
+          <h3 className="text-base font-bold text-gray-900 dark:text-white">
+            {activeTab === 'trash' ? 'Trash is empty' : 'No customers found'}
+          </h3>
+          <p className="text-xs text-gray-400 mt-1">
+            {activeTab === 'trash'
+              ? 'No soft-deleted customers found.'
+              : 'Add your first customer to get started.'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {customers.map((cust) => (
-            <Link
+            <div
               key={cust._id}
-              href={`/customers/${cust._id}`}
-              className="bg-white dark:bg-[#161E2E] border border-gray-200 dark:border-[#233048] hover:border-[#F52B2B]/50 p-5 rounded-2xl shadow-sm transition-all group flex flex-col justify-between"
+              onClick={() => router.push(`/customers/${cust._id}`)}
+              className="bg-white dark:bg-[#161E2E] border border-gray-200 dark:border-[#233048] hover:border-[#F52B2B]/50 p-5 rounded-2xl shadow-sm transition-all group flex flex-col justify-between cursor-pointer"
             >
               <div>
                 <div className="flex items-start justify-between gap-3 mb-3">
@@ -203,7 +322,41 @@ export default function CustomersPage() {
                       </span>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#F52B2B] transition-colors flex-shrink-0" />
+
+                  {/* Top Right Card Actions */}
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    {activeTab === 'active' ? (
+                      <>
+                        <button
+                          onClick={(e) => handleOpenEditModal(cust, e)}
+                          title="Edit Customer"
+                          className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-amber-100 hover:text-amber-700 text-gray-500 transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCustomerToDelete(cust);
+                          }}
+                          title="Move to Trash (Soft Delete)"
+                          className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-red-100 hover:text-red-700 text-gray-500 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={(e) => handleRestore(cust._id, e)}
+                        disabled={restoringId === cust._id}
+                        title="Restore Customer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-bold transition-colors"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Restore</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-1.5 text-xs text-gray-500 dark:text-gray-400 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
@@ -221,6 +374,11 @@ export default function CustomersPage() {
                     <div className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300">
                       <Car className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
                       <span>{cust.vehicleNumbers.join(', ')}</span>
+                    </div>
+                  )}
+                  {activeTab === 'trash' && cust.isdelete?.datetime && (
+                    <div className="text-[11px] text-red-500 font-semibold pt-1">
+                      Deleted on: {new Date(cust.isdelete.datetime).toLocaleString('en-IN')}
                     </div>
                   )}
                 </div>
@@ -245,12 +403,12 @@ export default function CustomersPage() {
                   </span>
                 </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}
 
-      {/* Add Customer Modal */}
+      {/* Add / Edit Customer Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
@@ -261,7 +419,7 @@ export default function CustomersPage() {
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
               <h2 className="text-base font-bold text-gray-900 dark:text-white">
-                Add New Customer
+                {editingCustomer ? 'Edit Customer Details' : 'Add New Customer'}
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -272,7 +430,7 @@ export default function CustomersPage() {
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={handleCreateCustomer} className="p-6 overflow-y-auto space-y-4">
+            <form onSubmit={handleSaveCustomer} className="p-6 overflow-y-auto space-y-4">
               {modalError && (
                 <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -434,11 +592,56 @@ export default function CustomersPage() {
                   {submitting ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   ) : (
-                    'Save Customer'
+                    editingCustomer ? 'Update Customer' : 'Save Customer'
                   )}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Soft Delete Confirmation Modal */}
+      {customerToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setCustomerToDelete(null)}
+          />
+          <div className="relative w-full max-w-md bg-white dark:bg-[#161E2E] border border-gray-200 dark:border-[#233048] rounded-2xl shadow-2xl overflow-hidden z-10 p-6 space-y-4">
+            <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
+              <div className="p-2 rounded-xl bg-red-100 dark:bg-red-950/60">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                  Move Customer to Trash?
+                </h3>
+                <p className="text-xs text-gray-500">Soft-delete confirmation</p>
+              </div>
+            </div>
+
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+              Customer <strong className="text-gray-900 dark:text-white">{customerToDelete.name}</strong> will be moved to the Trash. You can restore them anytime from the Trash tab.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setCustomerToDelete(null)}
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-300 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleSoftDelete}
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-600/20 transition-all"
+              >
+                {deleting ? 'Moving to Trash...' : 'Move to Trash'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -33,6 +33,10 @@ export interface IQuotation extends Document {
   status: QuotationStatus;
   convertedInvoiceId?: string;
   convertedInvoiceNumber?: string;
+  isdelete?: {
+    status: boolean;
+    datetime?: Date | null;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -111,7 +115,11 @@ const QuotationSchema = new Schema<IQuotation>(
       index: true
     },
     convertedInvoiceId: { type: String },
-    convertedInvoiceNumber: { type: String }
+    convertedInvoiceNumber: { type: String },
+    isdelete: {
+      status: { type: Boolean, default: false, index: true },
+      datetime: { type: Date, default: null }
+    }
   },
   { timestamps: true }
 );

@@ -1,0 +1,25 @@
+{
+  "name": "DEVI MOTORS — Invoicing & Management",
+  "short_name": "Devi Motors",
+  "description": "Professional Car Painting, Polishing & Detailing — Invoice, Quotation & Customer Management System",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0E1522",
+  "theme_color": "#F52B2B",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/assets/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

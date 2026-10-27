@@ -6,6 +6,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { BottomNav } from './BottomNav';
 import { MobileDrawer } from './MobileDrawer';
+import { PWAInstallPrompt } from '../PWAInstallPrompt';
 import { useAuth } from '../../context/AuthContext';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -67,6 +68,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Mobile Bottom Navigation */}
         <BottomNav />
+
+        {/* PWA Install Banner */}
+        <PWAInstallPrompt />
       </div>
     </div>
   );

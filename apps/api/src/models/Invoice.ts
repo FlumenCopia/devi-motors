@@ -34,6 +34,10 @@ export interface IInvoice extends Document {
   bankDetails: BankDetails;
   notes?: string;
   paymentTerms?: string;
+  isdelete?: {
+    status: boolean;
+    datetime?: Date | null;
+  };
   issuedAt?: Date;
   issuedBy?: string;
   createdAt: Date;
@@ -128,6 +132,10 @@ const InvoiceSchema = new Schema<IInvoice>(
     },
     notes: { type: String },
     paymentTerms: { type: String, default: 'Immediate upon invoice submission' },
+    isdelete: {
+      status: { type: Boolean, default: false, index: true },
+      datetime: { type: Date, default: null }
+    },
     issuedAt: { type: Date },
     issuedBy: { type: String }
   },

@@ -102,6 +102,10 @@ export const api = {
     apiRequest('/customers', { method: 'POST', body: JSON.stringify(data) }),
   updateCustomer: (id: string, data: any) =>
     apiRequest(`/customers/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteCustomer: (id: string) =>
+    apiRequest(`/customers/${id}`, { method: 'DELETE' }),
+  restoreCustomer: (id: string) =>
+    apiRequest(`/customers/${id}/restore`, { method: 'POST' }),
   archiveCustomer: (id: string) =>
     apiRequest(`/customers/${id}/archive`, { method: 'PATCH' }),
 
@@ -117,10 +121,18 @@ export const api = {
     apiRequest('/invoices', { method: 'POST', body: JSON.stringify(data) }),
   updateInvoiceDraft: (id: string, data: any) =>
     apiRequest(`/invoices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  updateInvoice: (id: string, data: any) =>
+    apiRequest(`/invoices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteInvoice: (id: string) =>
+    apiRequest(`/invoices/${id}`, { method: 'DELETE' }),
+  restoreInvoice: (id: string) =>
+    apiRequest(`/invoices/${id}/restore`, { method: 'POST' }),
   issueInvoice: (id: string) =>
     apiRequest(`/invoices/${id}/issue`, { method: 'POST' }),
-  previewInvoiceUrl: (id: string) => `${API_BASE}/invoices/${id}/preview`,
-  downloadInvoiceUrl: (id: string) => `${API_BASE}/invoices/${id}/pdf`,
+  previewInvoiceUrl: (id: string, withSignature = false) =>
+    `${API_BASE}/invoices/${id}/preview${withSignature ? '?withSignature=true' : ''}`,
+  downloadInvoiceUrl: (id: string, withSignature = false) =>
+    `${API_BASE}/invoices/${id}/pdf${withSignature ? '?withSignature=true' : ''}`,
 
   // Quotations
   listQuotations: (params?: any) => {
@@ -132,12 +144,18 @@ export const api = {
     apiRequest('/quotations', { method: 'POST', body: JSON.stringify(data) }),
   updateQuotation: (id: string, data: any) =>
     apiRequest(`/quotations/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteQuotation: (id: string) =>
+    apiRequest(`/quotations/${id}`, { method: 'DELETE' }),
+  restoreQuotation: (id: string) =>
+    apiRequest(`/quotations/${id}/restore`, { method: 'POST' }),
   updateQuotationStatus: (id: string, status: string) =>
     apiRequest(`/quotations/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   convertQuotationToInvoice: (id: string) =>
     apiRequest(`/quotations/${id}/convert`, { method: 'POST' }),
-  previewQuotationUrl: (id: string) => `${API_BASE}/quotations/${id}/preview`,
-  downloadQuotationUrl: (id: string) => `${API_BASE}/quotations/${id}/pdf`,
+  previewQuotationUrl: (id: string, withSignature = false) =>
+    `${API_BASE}/quotations/${id}/preview${withSignature ? '?withSignature=true' : ''}`,
+  downloadQuotationUrl: (id: string, withSignature = false) =>
+    `${API_BASE}/quotations/${id}/pdf${withSignature ? '?withSignature=true' : ''}`,
 
   // Payments
   recordPayment: (data: {

@@ -6,6 +6,8 @@ import {
   createInvoiceDraft,
   updateInvoice,
   issueInvoice,
+  deleteInvoice,
+  restoreInvoice,
   previewInvoiceHtml,
   downloadInvoicePdf
 } from '../controllers/invoiceController';
@@ -26,5 +28,7 @@ router.post('/', createInvoiceDraft);
 router.get('/:id', getInvoice);
 router.put('/:id', updateInvoice);
 router.post('/:id/issue', issueInvoice);
+router.delete('/:id', deleteInvoice);
+router.post('/:id/restore', restoreInvoice);
 
 export default router;

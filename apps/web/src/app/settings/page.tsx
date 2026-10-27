@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useTheme } from '../../context/ThemeContext';
+import { AUTOMOTIVE_HSN_CODES } from '@devi-motors/shared';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -220,12 +221,50 @@ export default function SettingsPage() {
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
                 Default Service HSN/SAC Code
               </label>
-              <input
-                type="text"
-                value={settings.defaultHsn}
-                onChange={(e) => setSettings({ ...settings, defaultHsn: e.target.value })}
+              <select
+                value={
+                  AUTOMOTIVE_HSN_CODES.some((c) => c.code === settings.defaultHsn)
+                    ? settings.defaultHsn
+                    : 'custom'
+                }
+                onChange={(e) => {
+                  if (e.target.value !== 'custom') {
+                    setSettings({ ...settings, defaultHsn: e.target.value });
+                  }
+                }}
                 className="w-full px-3.5 py-2 text-sm bg-gray-50 dark:bg-[#0E1522] border border-gray-200 dark:border-[#233048] rounded-xl text-gray-900 dark:text-white"
-              />
+              >
+                <optgroup label="Devi Motors Primary Codes">
+                  {AUTOMOTIVE_HSN_CODES.filter((c) => c.isPrimary).map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} — {c.label} ({c.type})
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Related Automotive Codes">
+                  {AUTOMOTIVE_HSN_CODES.filter((c) => !c.isPrimary).map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} — {c.label} ({c.type})
+                    </option>
+                  ))}
+                </optgroup>
+                <option value="custom">+ Custom HSN/SAC Code</option>
+              </select>
+
+              {(!AUTOMOTIVE_HSN_CODES.some((c) => c.code === settings.defaultHsn) ||
+                settings.defaultHsn === '') && (
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    value={settings.defaultHsn}
+                    onChange={(e) =>
+                      setSettings({ ...settings, defaultHsn: e.target.value.replace(/\D/g, '') })
+                    }
+                    placeholder="Enter custom 4-8 digit HSN/SAC code"
+                    className="w-full px-3 py-1.5 text-xs font-mono bg-white dark:bg-[#0E1522] border border-red-300 dark:border-red-900/50 rounded-lg text-gray-900 dark:text-white"
+                  />
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">

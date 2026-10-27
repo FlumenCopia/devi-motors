@@ -46,12 +46,20 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
     >
       <div>
         {/* Brand Header */}
-        <div className="h-20 flex items-center px-5 border-b border-gray-100 dark:border-[#1F293D]/60">
-          <Link href="/" className="flex items-center gap-3">
+        <div className="h-20 flex items-center justify-center px-3 border-b border-gray-100 dark:border-[#1F293D]/60 overflow-hidden">
+          <Link
+            href="/"
+            className="flex items-center justify-center w-full transition-transform duration-200 hover:scale-[1.02]"
+            title="Devi Motors Home"
+          >
             <img
               src="/assets/logo.png"
               alt="DEVI MOTORS"
-              className="h-10 w-auto object-contain"
+              className={`w-auto object-contain transition-all duration-200 ${
+                collapsed
+                  ? 'h-8 max-w-[48px]'
+                  : 'h-13 md:h-14 max-h-[58px] max-w-[200px]'
+              }`}
             />
           </Link>
         </div>
