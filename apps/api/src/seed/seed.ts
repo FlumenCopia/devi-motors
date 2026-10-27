@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
+import dns from 'dns';
 import { UserModel } from '../models/User';
 import { CustomerModel } from '../models/Customer';
 import { InvoiceModel } from '../models/Invoice';
@@ -10,6 +11,12 @@ import { CompanySettingsModel } from '../models/CompanySettings';
 import { CounterModel } from '../models/Counter';
 
 dotenv.config();
+
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  // Ignore in sandboxed environments
+}
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/devi_motors';
 
