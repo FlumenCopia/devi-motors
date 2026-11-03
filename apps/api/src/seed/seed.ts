@@ -80,13 +80,20 @@ export async function runSeed(): Promise<void> {
   });
   console.log('   Official Company profile seeded successfully.');
 
+  // Seed invoice sequence to 7 so next issued invoice begins at DM/08/26-27
+  await CounterModel.create({
+    documentType: 'invoice',
+    financialYear: '26-27',
+    sequence: 7
+  });
+
   console.log('=====================================================');
   console.log('CLEAN SEED COMPLETE:');
   console.log('- 0 Customers (Clean for manual entry)');
   console.log('- 0 Invoices (Clean for manual entry)');
   console.log('- 0 Quotations (Clean for manual entry)');
   console.log('- 0 Payments (Clean for manual entry)');
-  console.log('- Counters reset to 0');
+  console.log('- Invoice counter initialized to 7 (next invoice starts at DM/08/26-27)');
   console.log('- Official DEVI MOTORS company data preserved');
   console.log('- Admin user ready: admin@devimotors.in / admin123');
   console.log('=====================================================');
