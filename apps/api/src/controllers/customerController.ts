@@ -58,8 +58,8 @@ export async function getCustomer(req: Request, res: Response): Promise<void> {
 
     // Retrieve previous invoices and quotations
     const [invoices, quotations] = await Promise.all([
-      InvoiceModel.find({ 'customer.id': id }).sort({ invoiceDate: -1 }),
-      QuotationModel.find({ 'customer.id': id }).sort({ quotationDate: -1 })
+      InvoiceModel.find({ 'customer.id': id, 'isdelete.status': { $ne: true } }).sort({ invoiceDate: -1 }),
+      QuotationModel.find({ 'customer.id': id, 'isdelete.status': { $ne: true } }).sort({ quotationDate: -1 })
     ]);
 
     res.json({

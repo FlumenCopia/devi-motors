@@ -13,7 +13,7 @@ export async function getDashboardMetrics(req: Request, res: Response): Promise<
 
     // Aggregations on issued invoices for target financial year
     const invoiceStats = await InvoiceModel.aggregate([
-      { $match: { status: 'issued', financialYear: targetFy } },
+      { $match: { status: 'issued', financialYear: targetFy, 'isdelete.status': { $ne: true } } },
       {
         $group: {
           _id: null,
@@ -30,7 +30,8 @@ export async function getDashboardMetrics(req: Request, res: Response): Promise<
 
     const quotationsPending = await QuotationModel.countDocuments({
       status: 'pending',
-      financialYear: targetFy
+      financialYear: targetFy,
+      'isdelete.status': { $ne: true }
     });
 
     // 12 Months breakdown: April to March for FY
@@ -66,7 +67,8 @@ export async function getDashboardMetrics(req: Request, res: Response): Promise<
             {
               $match: {
                 status: 'issued',
-                invoiceDate: { $regex: `^${monthPrefix}` }
+                invoiceDate: { $regex: `^${monthPrefix}` },
+                'isdelete.status': { $ne: true }
               }
             },
             { $group: { _id: null, total: { $sum: '$totalAmount' } } }
@@ -91,10 +93,10 @@ export async function getDashboardMetrics(req: Request, res: Response): Promise<
 
     // Recent documents (both Invoices and Quotations)
     const [recentInvoices, recentQuotations] = await Promise.all([
-      InvoiceModel.find({ status: { $ne: 'draft' } })
+      InvoiceModel.find({ status: { $ne: 'draft' }, 'isdelete.status': { $ne: true } })
         .sort({ invoiceDate: -1, createdAt: -1 })
         .limit(5),
-      QuotationModel.find().sort({ quotationDate: -1, createdAt: -1 }).limit(5)
+      QuotationModel.find({ 'isdelete.status': { $ne: true } }).sort({ quotationDate: -1, createdAt: -1 }).limit(5)
     ]);
 
     const combinedDocs = [
@@ -135,7 +137,7 @@ export async function getDashboardMetrics(req: Request, res: Response): Promise<
       .slice(0, 5);
 
     // Recent customers
-    const recentCusts = await CustomerModel.find({ isArchived: false })
+    const recentCusts = await CustomerModel.find({ isArchived: false, 'isdelete.status': { $ne: true } })
       .sort({ updatedAt: -1 })
       .limit(5);
 

@@ -12,7 +12,7 @@ export async function getFinancialReports(req: Request, res: Response): Promise<
 
     // GST Tax Summary
     const taxSummary = await InvoiceModel.aggregate([
-      { $match: { status: 'issued', financialYear: targetFy } },
+      { $match: { status: 'issued', financialYear: targetFy, 'isdelete.status': { $ne: true } } },
       {
         $group: {
           _id: null,
@@ -28,7 +28,7 @@ export async function getFinancialReports(req: Request, res: Response): Promise<
 
     // Sales by customer
     const customerSales = await InvoiceModel.aggregate([
-      { $match: { status: 'issued', financialYear: targetFy } },
+      { $match: { status: 'issued', financialYear: targetFy, 'isdelete.status': { $ne: true } } },
       {
         $group: {
           _id: '$customer.name',
@@ -43,14 +43,16 @@ export async function getFinancialReports(req: Request, res: Response): Promise<
     ]);
 
     // Quotation conversion rate
-    const totalQuotations = await QuotationModel.countDocuments({ financialYear: targetFy });
+    const totalQuotations = await QuotationModel.countDocuments({ financialYear: targetFy, 'isdelete.status': { $ne: true } });
     const convertedQuotations = await QuotationModel.countDocuments({
       financialYear: targetFy,
-      status: 'converted'
+      status: 'converted',
+      'isdelete.status': { $ne: true }
     });
     const approvedQuotations = await QuotationModel.countDocuments({
       financialYear: targetFy,
-      status: 'approved'
+      status: 'approved',
+      'isdelete.status': { $ne: true }
     });
 
     const conversionRate =
