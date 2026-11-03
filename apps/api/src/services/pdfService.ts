@@ -45,6 +45,7 @@ const signatureB64 =
 
 export interface PdfRenderOptions {
   withSignature?: boolean;
+  autoPrint?: boolean;
 }
 
 export function generateInvoiceHtml(
@@ -53,6 +54,7 @@ export function generateInvoiceHtml(
   options?: PdfRenderOptions
 ): string {
   const withSignature = options?.withSignature === true;
+  const autoPrint = options?.autoPrint === true;
   const isInterState = invoice.customer.stateCode && invoice.customer.stateCode !== '32';
   const logoSrc = logoB64 || settings.logoUrl || '';
   const stampSrc = stampB64 || settings.stampUrl || '';
@@ -93,12 +95,19 @@ export function generateInvoiceHtml(
   <style>
     @page {
       size: A4 portrait;
-      margin: 12mm 14mm 10mm 14mm;
+      margin: 0;
     }
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
     }
     body {
       font-family: Arial, Helvetica, sans-serif;
@@ -106,6 +115,7 @@ export function generateInvoiceHtml(
       background: #fff;
       font-size: 13px;
       line-height: 1.3;
+      padding: 10mm 12mm;
     }
     .header-container {
       text-align: center;
@@ -570,6 +580,19 @@ export function generateInvoiceHtml(
       </td>
     </tr>
   </table>
+  <div id="preview-toolbar" class="no-print" style="display:none; position: fixed; top: 12px; right: 12px; z-index: 9999; align-items: center; gap: 8px; background: rgba(17, 24, 39, 0.92); padding: 6px 12px; border-radius: 9999px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-family: system-ui, -apple-system, sans-serif;">
+    <button onclick="window.print()" style="background: #2563eb; color: #fff; border: none; padding: 6px 14px; border-radius: 9999px; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(37,99,235,0.3);">
+      <span>🖨️</span><span>Print / Save as PDF</span>
+    </button>
+    <button onclick="window.close()" style="background: rgba(255,255,255,0.18); color: #fff; border: none; padding: 6px 12px; border-radius: 9999px; font-weight: 600; font-size: 13px; cursor: pointer;">✕ Close</button>
+  </div>
+  <script>
+    if (window.self === window.top) {
+      var tb = document.getElementById('preview-toolbar');
+      if (tb) tb.style.display = 'flex';
+    }
+    ${autoPrint ? 'window.addEventListener("load", function() { setTimeout(function() { window.print(); }, 250); });' : ''}
+  </script>
 </body>
 </html>
 `;
@@ -581,6 +604,7 @@ export function generateQuotationHtml(
   options?: PdfRenderOptions
 ): string {
   const withSignature = options?.withSignature === true;
+  const autoPrint = options?.autoPrint === true;
   const logoSrc = logoB64 || settings.logoUrl || '';
   const stampSrc = stampB64 || settings.stampUrl || '';
   const signatureSrc = signatureB64 || settings.signatureUrl || '';
@@ -597,12 +621,19 @@ export function generateQuotationHtml(
   <style>
     @page {
       size: A4 portrait;
-      margin: 15mm 20mm;
+      margin: 0;
     }
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
     }
     body {
       font-family: Arial, Helvetica, sans-serif;
@@ -610,6 +641,7 @@ export function generateQuotationHtml(
       background: #fff;
       font-size: 13.5px;
       line-height: 1.5;
+      padding: 12mm 15mm;
     }
     .header-container {
       text-align: center;
@@ -788,6 +820,19 @@ export function generateQuotationHtml(
       </div>
     </div>
   </div>
+  <div id="preview-toolbar" class="no-print" style="display:none; position: fixed; top: 12px; right: 12px; z-index: 9999; align-items: center; gap: 8px; background: rgba(17, 24, 39, 0.92); padding: 6px 12px; border-radius: 9999px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-family: system-ui, -apple-system, sans-serif;">
+    <button onclick="window.print()" style="background: #2563eb; color: #fff; border: none; padding: 6px 14px; border-radius: 9999px; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(37,99,235,0.3);">
+      <span>🖨️</span><span>Print / Save as PDF</span>
+    </button>
+    <button onclick="window.close()" style="background: rgba(255,255,255,0.18); color: #fff; border: none; padding: 6px 12px; border-radius: 9999px; font-weight: 600; font-size: 13px; cursor: pointer;">✕ Close</button>
+  </div>
+  <script>
+    if (window.self === window.top) {
+      var tb = document.getElementById('preview-toolbar');
+      if (tb) tb.style.display = 'flex';
+    }
+    ${autoPrint ? 'window.addEventListener("load", function() { setTimeout(function() { window.print(); }, 250); });' : ''}
+  </script>
 </body>
 </html>
 `;

@@ -391,13 +391,14 @@ export async function previewInvoiceHtml(req: Request, res: Response): Promise<v
   try {
     const { id } = req.params;
     const withSignature = req.query.withSignature === 'true' || req.query.signature === 'true';
+    const autoPrint = req.query.autoPrint === 'true' || req.query.print === 'true';
     const invoice = await InvoiceModel.findById(id);
     if (!invoice) {
       res.status(404).send('Invoice not found');
       return;
     }
     const settings = (await CompanySettingsModel.findOne()) || (new CompanySettingsModel() as any);
-    const html = generateInvoiceHtml(invoice, settings, { withSignature });
+    const html = generateInvoiceHtml(invoice, settings, { withSignature, autoPrint });
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
   } catch (error: any) {
@@ -409,13 +410,14 @@ export async function downloadInvoicePdf(req: Request, res: Response): Promise<v
   try {
     const { id } = req.params;
     const withSignature = req.query.withSignature === 'true' || req.query.signature === 'true';
+    const autoPrint = req.query.autoPrint === 'true' || req.query.print === 'true';
     const invoice = await InvoiceModel.findById(id);
     if (!invoice) {
       res.status(404).json({ success: false, message: 'Invoice not found.' });
       return;
     }
     const settings = (await CompanySettingsModel.findOne()) || (new CompanySettingsModel() as any);
-    const html = generateInvoiceHtml(invoice, settings, { withSignature });
+    const html = generateInvoiceHtml(invoice, settings, { withSignature, autoPrint });
     const pdfBuffer = await renderPdfBuffer(html);
 
     const safeNumber = invoice.invoiceNumber.replace(/[\/\\]/g, '-');
@@ -426,6 +428,17 @@ export async function downloadInvoicePdf(req: Request, res: Response): Promise<v
     res.send(pdfBuffer);
   } catch (error: any) {
     console.error('PDF Generation Error:', error);
+    try {
+      const invoice = await InvoiceModel.findById(req.params.id);
+      if (invoice) {
+        const settings = (await CompanySettingsModel.findOne()) || (new CompanySettingsModel() as any);
+        const withSignature = req.query.withSignature === 'true' || req.query.signature === 'true';
+        const html = generateInvoiceHtml(invoice, settings, { withSignature, autoPrint: true });
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
+        return;
+      }
+    } catch (fallbackErr) {}
     res.status(500).json({ success: false, message: 'Failed to generate PDF.' });
   }
 }

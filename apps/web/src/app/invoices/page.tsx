@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { WhatsAppIcon, getInvoiceWhatsAppUrl } from '../../lib/whatsapp';
+import { printDocument } from '../../lib/print';
 
 export default function InvoicesPage() {
   const router = useRouter();
@@ -411,24 +412,22 @@ export default function InvoicesPage() {
                           >
                             <Pencil className="w-4 h-4" />
                           </Link>
-                          <a
-                            href={api.downloadInvoiceUrl(inv._id, false)}
-                            target="_blank"
-                            rel="noreferrer"
-                            title="Download PDF (Badge Only - Default)"
+                          <button
+                            type="button"
+                            onClick={() => printDocument(api.previewInvoiceUrl(inv._id, false))}
+                            title="Download / Print PDF (Badge Only - Default)"
                             className="inline-block p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                           >
                             <Download className="w-4 h-4" />
-                          </a>
-                          <a
-                            href={api.downloadInvoiceUrl(inv._id, true)}
-                            target="_blank"
-                            rel="noreferrer"
-                            title="Download PDF with Signature"
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => printDocument(api.previewInvoiceUrl(inv._id, true))}
+                            title="Download / Print PDF with Signature"
                             className="inline-block p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                           >
                             <PenTool className="w-4 h-4" />
-                          </a>
+                          </button>
                           <button
                             onClick={() => setInvoiceToDelete(inv)}
                             title="Soft Delete (Move to Trash)"
@@ -458,15 +457,14 @@ export default function InvoicesPage() {
                             <RotateCcw className="w-3.5 h-3.5" />
                             <span>{restoringId === inv._id ? 'Restoring...' : 'Restore'}</span>
                           </button>
-                          <a
-                            href={api.downloadInvoiceUrl(inv._id, false)}
-                            target="_blank"
-                            rel="noreferrer"
-                            title="Download PDF"
+                          <button
+                            type="button"
+                            onClick={() => printDocument(api.previewInvoiceUrl(inv._id, false))}
+                            title="Download / Print PDF"
                             className="inline-block p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 transition-colors"
                           >
                             <Download className="w-4 h-4" />
-                          </a>
+                          </button>
                         </td>
                       </>
                     )}

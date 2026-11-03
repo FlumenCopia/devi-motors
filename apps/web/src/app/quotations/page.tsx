@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { WhatsAppIcon, getQuotationWhatsAppUrl } from '../../lib/whatsapp';
+import { printDocument } from '../../lib/print';
 
 export default function QuotationsPage() {
   const router = useRouter();
@@ -383,24 +384,22 @@ export default function QuotationsPage() {
                               View Invoice
                             </Link>
                           )}
-                          <a
-                            href={api.downloadQuotationUrl(q._id, false)}
-                            target="_blank"
-                            rel="noreferrer"
-                            title="Download PDF (Badge Only - Default)"
+                          <button
+                            type="button"
+                            onClick={() => printDocument(api.previewQuotationUrl(q._id, false))}
+                            title="Download / Print PDF (Badge Only - Default)"
                             className="inline-block p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                           >
                             <Download className="w-4 h-4" />
-                          </a>
-                          <a
-                            href={api.downloadQuotationUrl(q._id, true)}
-                            target="_blank"
-                            rel="noreferrer"
-                            title="Download PDF with Signature"
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => printDocument(api.previewQuotationUrl(q._id, true))}
+                            title="Download / Print PDF with Signature"
                             className="inline-block p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                           >
                             <PenTool className="w-4 h-4" />
-                          </a>
+                          </button>
                           <button
                             onClick={() => setQuotationToDelete(q)}
                             title="Soft Delete (Move to Trash)"
@@ -430,15 +429,14 @@ export default function QuotationsPage() {
                             <RotateCcw className="w-3.5 h-3.5" />
                             <span>{restoringId === q._id ? 'Restoring...' : 'Restore'}</span>
                           </button>
-                          <a
-                            href={api.downloadQuotationUrl(q._id, false)}
-                            target="_blank"
-                            rel="noreferrer"
-                            title="Download PDF"
+                          <button
+                            type="button"
+                            onClick={() => printDocument(api.previewQuotationUrl(q._id, false))}
+                            title="Download / Print PDF"
                             className="inline-block p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 transition-colors"
                           >
                             <Download className="w-4 h-4" />
-                          </a>
+                          </button>
                         </td>
                       </>
                     )}

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { WhatsAppIcon, getInvoiceWhatsAppUrl } from '../../../lib/whatsapp';
+import { printDocument } from '../../../lib/print';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -203,36 +204,43 @@ export default function InvoiceDetailPage() {
           </a>
 
           {/* Primary Action: Default PDF (Badge Only) */}
-          <a
-            href={defaultDownloadUrl}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={() => {
+              if (withSignature) {
+                setWithSignature(false);
+                setTimeout(() => printDocument(api.previewInvoiceUrl(invoice._id, false)), 150);
+              } else {
+                printDocument(api.previewInvoiceUrl(invoice._id, false));
+              }
+            }}
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 dark:bg-gray-800 hover:bg-black text-white text-xs font-semibold rounded-xl shadow-sm transition-all"
-            title="Download PDF with authentic transparent digital badge seal (Default)"
+            title="Download / Print PDF with authentic transparent digital badge seal (Default)"
           >
             <Download className="w-4 h-4" />
             <span>Download PDF</span>
-          </a>
+          </button>
 
           {/* Dedicated Action: Download with Signature */}
-          <a
-            href={signatureDownloadUrl}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={() => {
+              if (!withSignature) {
+                setWithSignature(true);
+                setTimeout(() => printDocument(api.previewInvoiceUrl(invoice._id, true)), 150);
+              } else {
+                printDocument(api.previewInvoiceUrl(invoice._id, true));
+              }
+            }}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-[#161E2E] border border-gray-200 dark:border-[#233048] hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded-xl shadow-sm transition-all"
-            title="Download PDF including both digital badge and handwritten signature"
+            title="Download / Print PDF including both digital badge and handwritten signature"
           >
             <Download className="w-4 h-4 text-gray-500" />
             <span>With Signature</span>
-          </a>
+          </button>
 
           <button
-            onClick={() => {
-              const iframe = document.getElementById('invoice-preview-frame') as HTMLIFrameElement;
-              if (iframe?.contentWindow) {
-                iframe.contentWindow.print();
-              }
-            }}
+            onClick={() => printDocument(api.previewInvoiceUrl(invoice._id, withSignature))}
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-[#161E2E] border border-gray-200 dark:border-[#233048] text-gray-700 dark:text-gray-300 hover:bg-gray-50 text-xs font-semibold rounded-xl shadow-sm transition-all"
           >
             <Printer className="w-4 h-4" />

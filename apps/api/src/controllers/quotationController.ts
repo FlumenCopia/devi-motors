@@ -298,13 +298,14 @@ export async function previewQuotationHtml(req: Request, res: Response): Promise
   try {
     const { id } = req.params;
     const withSignature = req.query.withSignature === 'true' || req.query.signature === 'true';
+    const autoPrint = req.query.autoPrint === 'true' || req.query.print === 'true';
     const quotation = await QuotationModel.findById(id);
     if (!quotation) {
       res.status(404).send('Quotation not found');
       return;
     }
     const settings = (await CompanySettingsModel.findOne()) || (new CompanySettingsModel() as any);
-    const html = generateQuotationHtml(quotation, settings, { withSignature });
+    const html = generateQuotationHtml(quotation, settings, { withSignature, autoPrint });
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
   } catch (error: any) {
@@ -316,13 +317,14 @@ export async function downloadQuotationPdf(req: Request, res: Response): Promise
   try {
     const { id } = req.params;
     const withSignature = req.query.withSignature === 'true' || req.query.signature === 'true';
+    const autoPrint = req.query.autoPrint === 'true' || req.query.print === 'true';
     const quotation = await QuotationModel.findById(id);
     if (!quotation) {
       res.status(404).json({ success: false, message: 'Quotation not found.' });
       return;
     }
     const settings = (await CompanySettingsModel.findOne()) || (new CompanySettingsModel() as any);
-    const html = generateQuotationHtml(quotation, settings, { withSignature });
+    const html = generateQuotationHtml(quotation, settings, { withSignature, autoPrint });
     const pdfBuffer = await renderPdfBuffer(html);
 
     const safeNumber = quotation.quotationNumber.replace(/[\/\\]/g, '-');
@@ -333,6 +335,17 @@ export async function downloadQuotationPdf(req: Request, res: Response): Promise
     res.send(pdfBuffer);
   } catch (error: any) {
     console.error('Quotation PDF Generation Error:', error);
+    try {
+      const quotation = await QuotationModel.findById(req.params.id);
+      if (quotation) {
+        const settings = (await CompanySettingsModel.findOne()) || (new CompanySettingsModel() as any);
+        const withSignature = req.query.withSignature === 'true' || req.query.signature === 'true';
+        const html = generateQuotationHtml(quotation, settings, { withSignature, autoPrint: true });
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
+        return;
+      }
+    } catch (fallbackErr) {}
     res.status(500).json({ success: false, message: 'Failed to generate Quotation PDF.' });
   }
 }
