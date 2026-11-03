@@ -157,7 +157,11 @@ export async function createInvoiceDraft(req: AuthRequest, res: Response): Promi
 
     // Generate a temporary draft number or peek next sequence
     const nextNum = await peekNextDocumentNumber('invoice', invoiceDate);
-    const invoiceNumber = `DRAFT-${nextNum}`;
+    let invoiceNumber = `DRAFT-${nextNum}`;
+    let draftSuffix = 1;
+    while (await InvoiceModel.exists({ invoiceNumber })) {
+      invoiceNumber = `DRAFT-${nextNum}-${draftSuffix++}`;
+    }
 
     const settings = await CompanySettingsModel.findOne();
 
