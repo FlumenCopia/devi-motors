@@ -55,7 +55,7 @@ export function generateInvoiceHtml(
 ): string {
   const withSignature = options?.withSignature === true;
   const autoPrint = options?.autoPrint === true;
-  const isInterState = invoice.customer.stateCode && invoice.customer.stateCode !== '32';
+  const isInterState = Boolean(invoice.customer?.stateCode && invoice.customer.stateCode !== '32');
   const logoSrc = logoB64 || settings.logoUrl || '';
   const stampSrc = stampB64 || settings.stampUrl || '';
   const signatureSrc = signatureB64 || settings.signatureUrl || '';
@@ -385,9 +385,9 @@ export function generateInvoiceHtml(
     <tr>
       <td class="bill-to-cell">
         <div class="bill-to-title">BILL TO</div>
-        <div class="cust-name">${invoice.customer.name}</div>
-        <div class="cust-address">${invoice.customer.billingAddress}</div>
-        ${invoice.customer.gstin ? `<div class="cust-gstin">GSTIN ${invoice.customer.gstin}</div>` : ''}
+        <div class="cust-name">${invoice.customer?.name || ''}</div>
+        <div class="cust-address">${invoice.customer?.billingAddress || ''}</div>
+        ${invoice.customer?.gstin ? `<div class="cust-gstin">GSTIN ${invoice.customer.gstin}</div>` : ''}
       </td>
       <td class="meta-details-cell">
         <table class="meta-inner-table">
@@ -455,14 +455,14 @@ export function generateInvoiceHtml(
         <td></td>
         <td></td>
         <td style="text-align:center;">${invoice.totalGst}</td>
-        <td style="text-align:right; padding-right:8px;">${invoice.totalAmount.toLocaleString('en-IN')}</td>
+        <td style="text-align:right; padding-right:8px;">${(invoice.totalAmount ?? 0).toLocaleString('en-IN')}</td>
       </tr>
     </tbody>
   </table>
 
   <!-- Words Banner -->
   <div class="words-banner">
-    RUPEES ${invoice.amountInWords.replace(/^RUPEES\s+/i, '').toUpperCase()}
+    RUPEES ${(invoice.amountInWords || '').replace(/^RUPEES\s+/i, '').toUpperCase()}
   </div>
 
   <!-- Tax Table -->
@@ -498,7 +498,7 @@ export function generateInvoiceHtml(
       taxSlabs.length <= 1
         ? `
       <tr>
-        <td style="height:26px;">${(taxSlabs[0]?.taxableAmount || invoice.subtotalTaxable).toLocaleString('en-IN')}</td>
+        <td style="height:26px;">${(taxSlabs[0]?.taxableAmount ?? invoice.subtotalTaxable ?? 0).toLocaleString('en-IN')}</td>
         ${
           isInterState
             ? `
@@ -512,7 +512,7 @@ export function generateInvoiceHtml(
             <td>${(taxSlabs[0]?.sgstAmount ?? invoice.totalSgst).toFixed(1)}</td>
           `
         }
-        <td class="tax-total-cell">${invoice.totalAmount.toLocaleString('en-IN')}</td>
+        <td class="tax-total-cell">${(invoice.totalAmount ?? 0).toLocaleString('en-IN')}</td>
       </tr>
     `
         : `
@@ -540,7 +540,7 @@ export function generateInvoiceHtml(
         )
         .join('')}
       <tr style="background:#fafafa; font-weight:bold;">
-        <td>Total: ${invoice.subtotalTaxable.toLocaleString('en-IN')}</td>
+        <td>Total: ${(invoice.subtotalTaxable ?? 0).toLocaleString('en-IN')}</td>
         ${
           isInterState
             ? `
@@ -782,7 +782,7 @@ export function generateQuotationHtml(
   </div>
 
   <div class="meta-row">
-    <div class="to-client">To: ${quotation.customer.name}</div>
+    <div class="to-client">To: ${quotation.customer?.name || ''}</div>
     <div style="text-align: right; font-weight: bold;">
       <div>Quotation No: ${quotation.quotationNumber}</div>
       <div>Date: ${formattedDate}</div>
@@ -840,16 +840,28 @@ export function generateQuotationHtml(
 
   // Invoice Style Quotation (Type A)
   // Reuses the exact structured grid but titled QUOTATION
+  const qDoc = typeof (quotation as any).toObject === 'function' ? (quotation as any).toObject() : quotation;
   const pseudoInvoice = {
-    ...quotation,
-    invoiceType: quotation.vehicleNumber ? 'vehicle' : 'client',
-    invoiceNumber: quotation.quotationNumber,
-    invoiceDate: quotation.quotationDate,
-    orderDate: quotation.validUntil,
-    hsnCode: (quotation.lineItems && quotation.lineItems.length > 0 && quotation.lineItems[0].hsnSac) || '998714',
-    lineItems: quotation.lineItems || [],
+    ...qDoc,
+    customer: quotation.customer || qDoc.customer || { name: 'Valued Customer', stateCode: '32', billingAddress: '' },
+    invoiceType: (quotation.vehicleNumber || qDoc.vehicleNumber) ? 'vehicle' : 'client',
+    invoiceNumber: quotation.quotationNumber || qDoc.quotationNumber,
+    invoiceDate: quotation.quotationDate || qDoc.quotationDate,
+    orderDate: quotation.validUntil || qDoc.validUntil,
+    hsnCode:
+      ((quotation.lineItems || qDoc.lineItems) &&
+        (quotation.lineItems || qDoc.lineItems).length > 0 &&
+        (quotation.lineItems || qDoc.lineItems)[0].hsnSac) ||
+      '998714',
+    lineItems: quotation.lineItems || qDoc.lineItems || [],
+    subtotalTaxable: quotation.subtotalTaxable ?? qDoc.subtotalTaxable ?? 0,
+    totalCgst: quotation.totalCgst ?? qDoc.totalCgst ?? 0,
+    totalSgst: quotation.totalSgst ?? qDoc.totalSgst ?? 0,
+    totalIgst: quotation.totalIgst ?? qDoc.totalIgst ?? 0,
+    totalGst: quotation.totalGst ?? qDoc.totalGst ?? 0,
+    totalAmount: quotation.totalAmount ?? qDoc.totalAmount ?? 0,
     bankDetails: settings.bankDetails,
-    amountInWords: quotation.amountInWords || ''
+    amountInWords: quotation.amountInWords || qDoc.amountInWords || ''
   } as unknown as IInvoice;
 
   const invoiceHtml = generateInvoiceHtml(pseudoInvoice, settings, options);
